@@ -60,6 +60,17 @@ class _StudioRootState extends State<StudioRoot> {
     SceneStore.save(data!);
   }
 
+  void loadPreset() {
+    final current = data!;
+    setState(() {
+      data = SceneData.demo()
+        ..darkMode = current.darkMode
+        ..startupMode = current.startupMode
+        ..lastWasViewer = false;
+    });
+    SceneStore.save(data!);
+  }
+
   Future<void> setMode(bool viewer) async {
     final scene = data!;
     if (showPreview == viewer) return;
@@ -99,8 +110,10 @@ class _StudioRootState extends State<StudioRoot> {
           child: Material(
             color: Colors.white,
             child: SetupScreen(
+              key: ObjectKey(scene),
               data: scene,
               onChanged: refresh,
+              onLoadPreset: loadPreset,
               onPreview: () => setMode(true),
             ),
           ),
@@ -114,11 +127,13 @@ class SetupScreen extends StatefulWidget {
   final SceneData data;
   final VoidCallback onChanged;
   final VoidCallback onPreview;
+  final VoidCallback onLoadPreset;
   const SetupScreen({
     super.key,
     required this.data,
     required this.onChanged,
     required this.onPreview,
+    required this.onLoadPreset,
   });
   @override
   State<SetupScreen> createState() => _SetupScreenState();
@@ -192,6 +207,30 @@ class _SetupScreenState extends State<SetupScreen> {
       ),
     );
     if (mounted) setState(() {});
+  }
+
+  Future<void> openPreset() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Caricare la scena di riferimento?'),
+        content: const Text(
+          'Sostituisce la scena corrente con il profilo animalchaos281, '
+          'le copertine e i dati di riferimento.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Carica scena'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) widget.onLoadPreset();
   }
 
   void preview() {
@@ -316,6 +355,14 @@ class _SetupScreenState extends State<SetupScreen> {
                 const Text(
                   'Dal Viewer, tieni premuto Profile in basso per tornare qui.',
                   style: TextStyle(color: Colors.black54, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Carica scena di riferimento'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: openPreset,
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -550,10 +597,7 @@ class _PostEditorState extends State<PostEditor> {
       comments,
       saves,
       shares,
-      endViews,
-      growthPercent,
-      scheduledLabel,
-      seconds;
+      scheduledLabel;
   @override
   void initState() {
     super.initState();
@@ -567,14 +611,7 @@ class _PostEditorState extends State<PostEditor> {
     comments = TextEditingController(text: post.comments);
     saves = TextEditingController(text: post.saves);
     shares = TextEditingController(text: post.shares);
-    endViews = TextEditingController(
-      text: post.endViews == 0 ? '' : post.endViews.toString(),
-    );
-    growthPercent = TextEditingController(
-      text: post.growthPercent == 0 ? '' : post.growthPercent.toString(),
-    );
     scheduledLabel = TextEditingController(text: post.scheduledLabel);
-    seconds = TextEditingController(text: post.seconds.toString());
   }
 
   @override
@@ -587,10 +624,7 @@ class _PostEditorState extends State<PostEditor> {
       comments,
       saves,
       shares,
-      endViews,
-      growthPercent,
       scheduledLabel,
-      seconds,
     ]) {
       c.dispose();
     }
@@ -618,13 +652,7 @@ class _PostEditorState extends State<PostEditor> {
     post.comments = comments.text;
     post.saves = saves.text;
     post.shares = shares.text;
-    post.endViews = int.tryParse(endViews.text) ?? 0;
-    final growth = double.tryParse(growthPercent.text.replaceAll(',', '.'));
-    post.growthPercent = growth != null && growth.isFinite
-        ? growth.clamp(0, 1000).toDouble()
-        : 0;
     post.scheduledLabel = scheduledLabel.text.trim();
-    post.seconds = (int.tryParse(seconds.text) ?? 8).clamp(1, 3600);
     if (widget.post != null) {
       final target = widget.post!;
       target.caption = post.caption;
@@ -636,10 +664,7 @@ class _PostEditorState extends State<PostEditor> {
       target.shares = post.shares;
       target.video = post.video;
       target.cover = post.cover;
-      target.endViews = post.endViews;
-      target.growthPercent = post.growthPercent;
       target.scheduledLabel = post.scheduledLabel;
-      target.seconds = post.seconds;
       target.analytics = Map.of(post.analytics);
       target.sampleComments = post.sampleComments;
     }
@@ -647,19 +672,14 @@ class _PostEditorState extends State<PostEditor> {
     Navigator.pop(context);
   }
 
-  Widget f(String label, TextEditingController c, {bool numeric = false}) =>
-      TextField(
-        controller: c,
-        keyboardType: numeric ? TextInputType.number : TextInputType.text,
-        inputFormatters: numeric
-            ? [FilteringTextInputFormatter.digitsOnly]
-            : null,
-        decoration: InputDecoration(
-          labelText: label,
-          isDense: true,
-          border: const OutlineInputBorder(),
-        ),
-      );
+  Widget f(String label, TextEditingController c) => TextField(
+    controller: c,
+    decoration: InputDecoration(
+      labelText: label,
+      isDense: true,
+      border: const OutlineInputBorder(),
+    ),
+  );
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: Colors.white,
@@ -737,40 +757,6 @@ class _PostEditorState extends State<PostEditor> {
             Expanded(child: f('Condivisioni', shares)),
           ],
         ),
-        const SizedBox(height: 22),
-        const Text(
-          'Animazione visualizzazioni',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 5),
-        const Text(
-          'La griglia aggiorna le visualizzazioni dopo il caricamento del profilo.',
-          style: TextStyle(color: Colors.black54, fontSize: 12),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: f('Valore finale', endViews, numeric: true)),
-            const SizedBox(width: 8),
-            Expanded(child: f('Durata in secondi', seconds, numeric: true)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Il valore finale ha precedenza sulla percentuale. Sono ammessi contatori con K e M.',
-          style: TextStyle(fontSize: 12, color: Colors.black45),
-        ),
-        const SizedBox(height: 12),
-        f('Incremento visualizzazioni (%)', growthPercent),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Incremento ben visibile'),
-          subtitle: const Text(
-            'Mostra le cifre durante l’aumento, anche quando il valore è abbreviato.',
-          ),
-          value: post.exactViewGrowth,
-          onChanged: (value) => setState(() => post.exactViewGrowth = value),
-        ),
         const SizedBox(height: 12),
         f('Data per riquadro programmato (facoltativa)', scheduledLabel),
         const SizedBox(height: 20),
@@ -796,6 +782,13 @@ class _PostEditorState extends State<PostEditor> {
   );
 }
 
+ImageProvider<Object>? sceneImage(String path) {
+  if (path.isEmpty) return null;
+  if (path.startsWith('assets/scene/')) return AssetImage(path);
+  final file = File(path);
+  return file.existsSync() ? FileImage(file) : null;
+}
+
 class Avatar extends StatelessWidget {
   final String path;
   final double radius;
@@ -804,9 +797,7 @@ class Avatar extends StatelessWidget {
   Widget build(BuildContext context) => CircleAvatar(
     radius: radius,
     backgroundColor: const Color(0xffe8e8e8),
-    backgroundImage: path.isNotEmpty && File(path).existsSync()
-        ? FileImage(File(path))
-        : null,
+    backgroundImage: sceneImage(path),
     child: path.isEmpty
         ? Icon(Icons.person, color: Colors.grey.shade500, size: radius)
         : null,
@@ -819,9 +810,8 @@ class PostCover extends StatelessWidget {
   const PostCover({super.key, required this.post, required this.index});
   @override
   Widget build(BuildContext context) {
-    if (post.cover.isNotEmpty && File(post.cover).existsSync()) {
-      return Image.file(File(post.cover), fit: BoxFit.cover);
-    }
+    final image = sceneImage(post.cover);
+    if (image != null) return Image(image: image, fit: BoxFit.cover);
     final colors = [
       const Color(0xff43555a),
       const Color(0xffa28d7b),

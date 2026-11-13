@@ -745,18 +745,12 @@ class _StudioPreviewState extends State<_StudioPreview> {
                                         ),
                                         child: Row(
                                           children: [
-                                            Container(
-                                              width: 66,
-                                              height: 65,
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xffd9edf8),
-                                                borderRadius:
-                                                    BorderRadius.circular(7),
-                                              ),
-                                              child: const Icon(
-                                                Icons.emoji_events_outlined,
-                                                color: Color(0xffbe7737),
-                                              ),
+                                            _StudioBannerArtwork(
+                                              path:
+                                                  widget
+                                                      .data
+                                                      .studio['bannerImage'] ??
+                                                  '',
                                             ),
                                             const SizedBox(width: 10),
                                             Expanded(
@@ -769,17 +763,17 @@ class _StudioPreviewState extends State<_StudioPreview> {
                                                             .data
                                                             .studio['bannerTitle'] ??
                                                         '#DailyLife Post Contest',
-                                                    maxLines: 1,
+                                                    maxLines: 2,
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                     style: TextStyle(
-                                                      fontSize: 13,
+                                                      fontSize: 14,
                                                       fontWeight:
                                                           FontWeight.w500,
                                                       color: c.ink,
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 12),
+                                                  const SizedBox(height: 7),
                                                   Text(
                                                     widget
                                                             .data
@@ -789,7 +783,7 @@ class _StudioPreviewState extends State<_StudioPreview> {
                                                     overflow:
                                                         TextOverflow.ellipsis,
                                                     style: TextStyle(
-                                                      fontSize: 12,
+                                                      fontSize: 14,
                                                       color: hotPink,
                                                     ),
                                                   ),
@@ -798,7 +792,7 @@ class _StudioPreviewState extends State<_StudioPreview> {
                                             ),
                                             Row(
                                               children: [
-                                                for (var i = 0; i < 4; i++)
+                                                for (var i = 0; i < 2; i++)
                                                   Container(
                                                     width: i == 0 ? 9 : 3,
                                                     height: 3,
@@ -1048,6 +1042,32 @@ class _StudioPreviewState extends State<_StudioPreview> {
       );
 }
 
+class _StudioBannerArtwork extends StatelessWidget {
+  final String path;
+  const _StudioBannerArtwork({required this.path});
+
+  @override
+  Widget build(BuildContext context) {
+    final image = sceneImage(path);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: SizedBox(
+        width: 66,
+        height: 66,
+        child: image != null
+            ? Image(image: image, fit: BoxFit.cover)
+            : const ColoredBox(
+                color: Color(0xffd9edf8),
+                child: Icon(
+                  Icons.emoji_events_outlined,
+                  color: Color(0xffbe7737),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
 int _studioViews(SceneData data) =>
     data.posts.fold(0, (total, post) => total + parseCount(post.views));
 int _studioLikes(SceneData data) =>
@@ -1064,21 +1084,31 @@ List<String> _studioTopics(SceneData data) {
       : topics;
 }
 
-Widget _studioTitle(String title, SimColors c, {bool arrow = false}) => Row(
+Widget _studioTitle(
+  String title,
+  SimColors c, {
+  bool arrow = false,
+  bool info = false,
+}) => Row(
   children: [
-    Expanded(
-      child: Text(
-        title,
-        style: TextStyle(
-          color: c.ink,
-          fontSize: 17,
-          height: 1.25,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    ),
+    if (info) ...[
+      Flexible(child: _studioTitleText(title, c)),
+      const SizedBox(width: 5),
+      Icon(Icons.info_outline, size: 14, color: c.sub),
+    ] else
+      Expanded(child: _studioTitleText(title, c)),
     if (arrow) Icon(Icons.chevron_right, size: 19, color: c.ink),
   ],
+);
+
+Widget _studioTitleText(String title, SimColors c) => Text(
+  title,
+  style: TextStyle(
+    color: c.ink,
+    fontSize: 17,
+    height: 1.25,
+    fontWeight: FontWeight.w700,
+  ),
 );
 
 Widget _studioNumber(
@@ -1095,19 +1125,19 @@ Widget _studioNumber(
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
-          color: c.sub,
-          fontSize: 12,
+          color: c.ink,
+          fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
       ),
       const SizedBox(height: 3),
       Text(
-        value,
+        label == 'Post views' ? formatViewCount(value) : value,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(
           color: c.ink,
-          fontSize: 21,
+          fontSize: 22,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -1122,6 +1152,7 @@ Widget _metricChange(
   String value,
   SimColors colors, {
   String? override,
+  String? changeValue,
   bool summary = false,
 }) {
   final percentage =
@@ -1136,7 +1167,9 @@ Widget _metricChange(
         _ => 0.0,
       };
   if (percentage == 0 || parseCount(value) == 0) {
-    return const SizedBox(height: 14);
+    return label == 'Est. rewards'
+        ? Text(r'+$0.00', style: TextStyle(color: colors.sub, fontSize: 13))
+        : const SizedBox(height: 17);
   }
   final current = parseCount(value);
   final change = percentage <= -100
@@ -1151,17 +1184,20 @@ Widget _metricChange(
   return Text.rich(
     TextSpan(
       children: [
-        if (summary)
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: Icon(
-              down ? Icons.arrow_drop_down : Icons.arrow_drop_up,
-              size: 14,
-              color: colors.dark ? const Color(0xff85c9fc) : insightBlue,
-            ),
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: Icon(
+            summary
+                ? (down ? Icons.arrow_drop_down : Icons.arrow_drop_up)
+                : (down ? Icons.arrow_circle_down : Icons.arrow_circle_up),
+            size: 14,
+            color: colors.dark ? const Color(0xff85c9fc) : insightBlue,
           ),
+        ),
         TextSpan(
-          text: summary ? '$percent%' : '$sign${formatCount(change.abs())}',
+          text: summary
+              ? ' $percent%'
+              : ' $sign${changeValue ?? formatCount(change.abs())}',
         ),
         TextSpan(
           text: summary ? '  7d' : ' ($sign$percent%)',
@@ -1174,7 +1210,7 @@ Widget _metricChange(
     style: TextStyle(
       color: colors.dark ? const Color(0xff85c9fc) : insightBlue,
       fontWeight: FontWeight.w600,
-      fontSize: 11,
+      fontSize: 13,
       height: 1.3,
     ),
   );
@@ -1234,7 +1270,7 @@ Widget _studioPills(
             behavior: HitTestBehavior.opaque,
             onTap: () => onSelect(i),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
                 color: i != selected
@@ -1251,7 +1287,7 @@ Widget _studioPills(
                       : blue
                       ? insightBlue
                       : c.bg,
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -1320,15 +1356,15 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
             TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 9),
+              labelPadding: const EdgeInsets.symmetric(horizontal: 10),
               labelStyle: const TextStyle(
                 fontFamily: 'TikTokSans',
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
               ),
               unselectedLabelStyle: const TextStyle(
                 fontFamily: 'TikTokSans',
-                fontSize: 14,
+                fontSize: 15,
                 fontWeight: FontWeight.w500,
               ),
               labelColor: c.ink,
@@ -1359,7 +1395,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
         children: [
           if (index != 0)
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 3),
               child: _studioPills(studioPeriodLabels, range, c, selectRange),
             ),
           if (loading) ...[
@@ -1460,12 +1496,19 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
         ('rewards', 'Est. rewards', value('rewards', r'$0.00')),
       ],
     };
+    final axis =
+        config[switch (index) {
+          3 => 'viewerChartAxis',
+          4 || 5 => '',
+          _ => 'chartAxis',
+        }];
     return AnalyticsCard(
       colors: c,
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 21),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _studioTitle('Key metrics', c),
+          _studioTitle('Key metrics', c, info: true),
           const SizedBox(height: 4),
           Text(
             config['date'] ??
@@ -1475,7 +1518,11 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
                   'Sep 14 – Nov 12',
                   'Nov 13, 2025 – Nov 12, 2026',
                 ][range],
-            style: TextStyle(color: c.sub, fontSize: 11),
+            style: TextStyle(
+              color: c.sub,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 18),
           for (var i = 0; i < fields.length; i += 2)
@@ -1490,34 +1537,73 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
               ),
             ),
           const SizedBox(height: 17),
-          SizedBox(
-            width: double.infinity,
-            height: 151,
-            child: CustomPaint(
-              painter: _StudioChart(
-                c,
-                lateSpike: range == 3 || index == 4,
-                series: _sceneSeries(
-                  config[switch (index) {
-                    3 => 'viewerChart',
-                    4 => 'followerChart',
-                    5 => 'liveChart',
-                    _ => 'chart',
-                  }],
-                ),
-              ),
-            ),
-          ),
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 6),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  range == 3 ? 'Nov 13, 2025' : 'Nov 6',
-                  style: TextStyle(color: c.sub, fontSize: 10),
+                Expanded(
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        width: double.infinity,
+                        height: 153,
+                        child: CustomPaint(
+                          painter: _StudioChart(
+                            c,
+                            lateSpike: range == 3 || index == 4,
+                            axisMaximum: _sceneSeries(axis)?.first,
+                            series: _sceneSeries(
+                              config[switch (index) {
+                                3 => 'viewerChart',
+                                4 => 'followerChart',
+                                5 => 'liveChart',
+                                _ => 'chart',
+                              }],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            const [
+                              'Nov 6',
+                              'Oct 16',
+                              'Sep 14',
+                              'Nov 13, 2025',
+                            ][range],
+                            style: TextStyle(color: c.sub, fontSize: 11),
+                          ),
+                          Text(
+                            range == 3 ? 'Nov 12, 2026' : 'Nov 12',
+                            style: TextStyle(color: c.sub, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                Text('Nov 12', style: TextStyle(color: c.sub, fontSize: 10)),
+                if (axis != null) ...[
+                  const SizedBox(width: 6),
+                  SizedBox(
+                    width: 39,
+                    height: 110,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        for (final label in axis.split(';').take(3))
+                          Text(
+                            formatViewCount(label),
+                            style: TextStyle(color: c.sub, fontSize: 11),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1534,7 +1620,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
     child: Container(
       padding: const EdgeInsets.fromLTRB(11, 12, 11, 11),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(8),
         color: selected ? insightBlue.withValues(alpha: .07) : c.surface,
         border: Border.all(
           color: selected ? insightBlue.withValues(alpha: .55) : c.divider,
@@ -1549,19 +1635,27 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: c.ink,
-              fontSize: 12,
+              fontSize: 13,
               height: 1.2,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 3),
           Text(
-            entry.$3,
+            const {
+                  'postViews',
+                  'profileViews',
+                  'viewers',
+                  'newViewers',
+                  'liveViews',
+                }.contains(entry.$1)
+                ? formatViewCount(entry.$3)
+                : entry.$3,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: c.ink,
-              fontSize: 21,
+              fontSize: 22,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -1571,6 +1665,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
             entry.$3,
             c,
             override: config['${entry.$1}Delta'],
+            changeValue: config['${entry.$1}Change'],
           ),
         ],
       ),
@@ -1732,7 +1827,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _studioTitle(title, c),
+          _studioTitle(title, c, info: true),
           const SizedBox(height: 10),
           _studioPills(
             ['Gender', 'Age', 'Locations'],
@@ -1795,7 +1890,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
             for (final (label, ratio) in locations.take(
               showAll ? locations.length : 5,
             ))
-              _ratio(label, ratio, c),
+              _ratio(label, ratio, c, location: true),
             if (locations.length > 5)
               Padding(
                 padding: const EdgeInsets.only(top: 14),
@@ -1823,8 +1918,13 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
   String _percentLabel(double value) =>
       '${value.toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '')}%';
 
-  Widget _ratio(String name, double value, SimColors c) => Padding(
-    padding: const EdgeInsets.only(top: 12),
+  Widget _ratio(
+    String name,
+    double value,
+    SimColors c, {
+    bool location = false,
+  }) => Padding(
+    padding: const EdgeInsets.only(top: 16),
     child: Column(
       children: [
         Row(
@@ -1847,14 +1947,15 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
                 fontWeight: FontWeight.w700,
               ),
             ),
+            if (location) Icon(Icons.chevron_right, size: 14, color: c.ink),
           ],
         ),
-        const SizedBox(height: 5),
+        const SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(3),
           child: LinearProgressIndicator(
             value: value / 100,
-            minHeight: 6,
+            minHeight: 10,
             color: insightBlue,
             backgroundColor: c.chip,
           ),
@@ -1868,7 +1969,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _studioTitle('Most active times', c),
+        _studioTitle('Most active times', c, info: true),
         const SizedBox(height: 8),
         _studioPills(
           ['Hours', 'Days'],
@@ -1906,27 +2007,37 @@ class _StudioChart extends CustomPainter {
   final SimColors colors;
   final bool lateSpike, bars;
   final List<double>? series;
+  final double? axisMaximum;
   const _StudioChart(
     this.colors, {
     this.lateSpike = false,
     this.bars = false,
     this.series,
+    this.axisMaximum,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (var i = 0; i < 5; i++) {
-      final y = size.height * i / 4;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        Paint()..color = colors.divider,
-      );
+    final gridPaint = Paint()..color = colors.divider;
+    for (var i = 0; i <= 3; i++) {
+      final y = size.height * i / 3;
+      if (i == 3 || bars) {
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+      } else {
+        for (var x = 0.0; x < size.width; x += 5) {
+          canvas.drawLine(
+            Offset(x, y),
+            Offset(math.min(x + 2.5, size.width), y),
+            gridPaint,
+          );
+        }
+      }
     }
     final samples = series;
-    final maximum = samples == null
-        ? 1.0
-        : math.max(1.0, samples.reduce(math.max));
+    final maximum = math.max(
+      axisMaximum ?? 1.0,
+      samples?.reduce(math.max) ?? 1.0,
+    );
     if (bars) {
       final count = samples?.length ?? (lateSpike ? 7 : 24);
       final peak = samples?.indexOf(maximum) ?? count - 3;
@@ -1948,7 +2059,12 @@ class _StudioChart extends CustomPainter {
         ? lateSpike
               ? [.91, .91, .91, .90, .89, .85, .67, .09]
               : [.12, .32, .72, .91, .91, .89, .75]
-        : samples.map((value) => 1 - .94 * value / maximum).toList();
+        : samples
+              .map(
+                (value) =>
+                    1 - (axisMaximum == null ? .94 : 1) * value / maximum,
+              )
+              .toList();
     final line = Path();
     for (final (index, value) in values.indexed) {
       final x = size.width * index / (values.length - 1);
@@ -1971,7 +2087,7 @@ class _StudioChart extends CustomPainter {
     canvas.drawPath(
       line,
       Paint()
-        ..color = const Color(0xff57a7e0)
+        ..color = insightBlue
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2,
     );
@@ -1982,5 +2098,6 @@ class _StudioChart extends CustomPainter {
       oldDelegate.colors.dark != colors.dark ||
       oldDelegate.lateSpike != lateSpike ||
       oldDelegate.bars != bars ||
-      oldDelegate.series != series;
+      oldDelegate.series != series ||
+      oldDelegate.axisMaximum != axisMaximum;
 }

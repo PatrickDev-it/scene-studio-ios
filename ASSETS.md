@@ -9,3 +9,5 @@
 - Icona Home: artwork della versione iOS 47.7.0 dall’[App Store italiano](https://apps.apple.com/it/app/id835599320), ridimensionato per i cataloghi locali.
 - Splash: marchio verticale del [pacchetto TikTok for Developers](https://developers.tiktok.com/doc/getting-started-design-guidelines), incluso come risorsa locale.
 - SceneShareBrands contiene tre glifi del [font Font Awesome Brands 6.7.2](https://github.com/FortAwesome/Font-Awesome/tree/6.7.2). La licenza è in `assets/fonts/SceneShareBrands-LICENSE.txt`.
+
+- `assets/scene/`: avatar, copertine e dettagli grafici forniti dall’utente per la scena di riferimento. Le ultime tre copertine e il banner Studio sono ritagli delle schermate fornite.

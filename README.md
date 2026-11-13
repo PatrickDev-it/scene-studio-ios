@@ -10,7 +10,9 @@ Il setup permette di personalizzare profilo, video, miniature, contatori, commen
 2. Configurare il profilo e i post, importare video MP4/MOV e miniature, quindi impostare commenti, analitiche e contatori.
 3. Aprire **Anteprima** per ripetere la sequenza di avvio dalla Home. Tenere premuto **Profile** in basso per riaprire il setup. Dal profilo, il menu in alto a destra apre **TikTok Studio**. Lo swipe verso il basso aggiorna la griglia.
 4. In **Sequenza Home**, selezionare e trascinare i video nell’ordine di riproduzione. **Analitiche e schermate TikTok Studio** modifica il riepilogo e i dati separati per intervallo. **Badge e notifiche Inbox** controlla il numero e il fumetto.
-5. Nel singolo video, impostare durata e incremento percentuale oppure un valore finale. **Incremento ben visibile** mostra il conteggio durante l’aumento anche quando le views partono da un valore abbreviato.
+5. Nel singolo video, imposta le visualizzazioni da mostrare. La griglia usa numeri interi sotto 10.000 e abbrevia i valori maggiori troncando al primo decimale.
+
+La scena di riferimento inclusa contiene il profilo animalchaos281, nove copertine locali e i dati simulati di Studio. Nel setup puoi caricare la scena di riferimento o importare i tuoi filmati.
 
 Il riferimento principale è iPhone 8 a 375 × 667 pt. Su iPhone la barra di stato e l’indicatore di registrazione appartengono a iOS. I media importati sono copiati nei documenti dell'app e le schermate Studio usano dati simulati.
 

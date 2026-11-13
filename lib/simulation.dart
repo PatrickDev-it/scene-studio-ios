@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 
-import 'main.dart' show Avatar, PostCover;
+import 'main.dart' show Avatar, PostCover, sceneImage;
 import 'preview_setup.dart' show studioPeriodLabels;
 import 'scene_data.dart';
 
@@ -593,32 +593,18 @@ class ProfileView extends StatefulWidget {
   State<ProfileView> createState() => _ProfileViewState();
 }
 
-class _ProfileViewState extends State<ProfileView>
-    with SingleTickerProviderStateMixin {
+class _ProfileViewState extends State<ProfileView> {
   int section = 0;
   final _scroll = ScrollController();
   final tileKeys = <String, GlobalKey>{};
+  final _tabsKey = GlobalKey();
   late bool coversReady = !widget.animateEntry;
   late bool metricsReady = !widget.animateEntry;
-  late final AnimationController viewClock = AnimationController(
-    vsync: this,
-    duration: Duration(
-      seconds: widget.data.posts.fold(
-        1,
-        (longest, post) => math.max(longest, post.seconds.clamp(1, 3600)),
-      ),
-    ),
-  );
 
   @override
   void initState() {
     super.initState();
     if (widget.animateEntry) reveal();
-    if (!widget.animateEntry) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) startViewIncrease();
-      });
-    }
   }
 
   Future<void> reveal() async {
@@ -628,31 +614,10 @@ class _ProfileViewState extends State<ProfileView>
     await Future<void>.delayed(_profileMetricsDelay - _profileGridDelay);
     if (!mounted) return;
     setState(() => metricsReady = true);
-    startViewIncrease();
     widget.onShown();
   }
 
-  Future<void> refresh() async {
-    await Future<void>.delayed(_profileRefreshTime);
-    if (!mounted) return;
-    if (!metricsReady) {
-      setState(() => metricsReady = true);
-      startViewIncrease();
-    }
-  }
-
-  void startViewIncrease() {
-    if (!widget.data.posts.any(
-      (post) => post.endViews > 0 || post.growthPercent > 0,
-    )) {
-      return;
-    }
-    if (MediaQuery.disableAnimationsOf(context)) {
-      viewClock.value = 1;
-    } else {
-      viewClock.forward();
-    }
-  }
+  Future<void> refresh() => Future<void>.delayed(_profileRefreshTime);
 
   void scrollToTop() {
     if (!_scroll.hasClients) return;
@@ -670,7 +635,6 @@ class _ProfileViewState extends State<ProfileView>
   @override
   void dispose() {
     _scroll.dispose();
-    viewClock.dispose();
     super.dispose();
   }
 
@@ -685,7 +649,17 @@ class _ProfileViewState extends State<ProfileView>
       return null;
     }
     final rect = tile.localToGlobal(Offset.zero) & tile.size;
-    final visible = viewport.localToGlobal(Offset.zero) & viewport.size;
+    final viewportRect = viewport.localToGlobal(Offset.zero) & viewport.size;
+    final tabs = _tabsKey.currentContext?.findRenderObject();
+    final tabsBottom = tabs is RenderBox && tabs.hasSize
+        ? tabs.localToGlobal(Offset(0, tabs.size.height)).dy
+        : viewportRect.top;
+    final visible = Rect.fromLTRB(
+      viewportRect.left,
+      math.max(viewportRect.top, tabsBottom),
+      viewportRect.right,
+      viewportRect.bottom,
+    );
     return visible.overlaps(rect) ? rect.intersect(visible) : null;
   }
 
@@ -701,77 +675,19 @@ class _ProfileViewState extends State<ProfileView>
           parent: AlwaysScrollableScrollPhysics(),
         ),
         slivers: [
+          SliverLayoutBuilder(
+            builder: (context, constraints) => PinnedHeaderSliver(
+              child: ColoredBox(
+                color: c.bg,
+                child: profileToolbar(d, c, constraints.scrollOffset >= 166),
+              ),
+            ),
+          ),
           _refreshSliver(refresh),
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SizedBox(
-                  height: 44,
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 48,
-                        height: 44,
-                        child: Icon(Icons.edit_outlined, color: c.ink),
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: const Icon(
-                          Icons.card_giftcard_rounded,
-                          color: hotPink,
-                        ),
-                        tooltip: 'Rewards',
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: 38,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Avatar(
-                              path: metricsReady ? d.avatar : '',
-                              radius: 12,
-                            ),
-                            Positioned(
-                              right: 2,
-                              bottom: 0,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: c.bg,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 2,
-                                  ),
-                                  child: Text(
-                                    '99',
-                                    style: TextStyle(
-                                      color: c.ink,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {},
-                        icon: Icon(Icons.person_add_alt, color: c.ink),
-                        tooltip: 'Friends',
-                      ),
-                      IconButton(
-                        onPressed: widget.onMenu,
-                        tooltip: 'Profile menu',
-                        icon: Icon(Icons.menu, color: c.ink),
-                      ),
-                    ],
-                  ),
-                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 7, 16, 0),
                   child: Row(
@@ -791,7 +707,7 @@ class _ProfileViewState extends State<ProfileView>
                                     style: TextStyle(
                                       color: c.ink,
                                       fontWeight: FontWeight.w800,
-                                      fontSize: 26,
+                                      fontSize: 28,
                                       letterSpacing: -.7,
                                     ),
                                   ),
@@ -819,25 +735,13 @@ class _ProfileViewState extends State<ProfileView>
                             const SizedBox(height: 13),
                             Row(
                               children: [
-                                Flexible(
+                                Expanded(
                                   child: stat(d.following, 'Following', c),
                                 ),
-                                const SizedBox(width: 12),
-                                Flexible(
-                                  child: stat(
-                                    _profileCount(d.followers, 5),
-                                    'Followers',
-                                    c,
-                                  ),
+                                Expanded(
+                                  child: stat(d.followers, 'Followers', c),
                                 ),
-                                const SizedBox(width: 12),
-                                Flexible(
-                                  child: stat(
-                                    _profileCount(d.likes, 100),
-                                    'Likes',
-                                    c,
-                                  ),
-                                ),
+                                Expanded(child: stat(d.likes, 'Likes', c)),
                               ],
                             ),
                           ],
@@ -872,7 +776,7 @@ class _ProfileViewState extends State<ProfileView>
                                 child: Text(
                                   "What's up?",
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(color: c.sub, fontSize: 12),
+                                  style: TextStyle(color: c.sub, fontSize: 13),
                                 ),
                               ),
                             ),
@@ -901,10 +805,10 @@ class _ProfileViewState extends State<ProfileView>
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 13, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: Text(
                     d.bio,
-                    style: TextStyle(color: c.ink, fontSize: 13, height: 1.3),
+                    style: TextStyle(color: c.ink, fontSize: 14, height: 1.3),
                   ),
                 ),
                 Padding(
@@ -930,54 +834,10 @@ class _ProfileViewState extends State<ProfileView>
                     ),
                   ),
                 ),
-                SizedBox(
-                  height: 44,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: List.generate(5, (i) {
-                      final icons = [
-                        Icons.grid_on,
-                        Icons.face_retouching_natural,
-                        Icons.lock_outline,
-                        Icons.bookmark_border,
-                        Icons.favorite_border,
-                      ];
-                      return Expanded(
-                        child: InkWell(
-                          onTap: () => setState(() => section = i),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              if (i == 0)
-                                ImageIcon(
-                                  const AssetImage('assets/icons/ref_grid.png'),
-                                  size: 24,
-                                  color: section == i ? c.ink : c.sub,
-                                )
-                              else
-                                Icon(
-                                  icons[i],
-                                  size: 23,
-                                  color: section == i ? c.ink : c.sub,
-                                ),
-                              const SizedBox(height: 8),
-                              Container(
-                                width: 45,
-                                height: 2,
-                                color: section == i
-                                    ? c.ink
-                                    : Colors.transparent,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ),
               ],
             ),
           ),
+          PinnedHeaderSliver(child: profileTabs(c)),
           if (section != 0 || d.posts.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
@@ -1005,28 +865,31 @@ class _ProfileViewState extends State<ProfileView>
                             gradient: LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
-                              colors: [Colors.transparent, Color(0xaa000000)],
+                              colors: [Colors.transparent, Color(0x66000000)],
+                              stops: [.65, 1],
                             ),
                           ),
                         ),
                       ),
                       Positioned(
-                        left: 5,
+                        left: 6,
                         right: 5,
-                        bottom: 6,
+                        bottom: 5,
                         child: Row(
                           children: [
-                            Icon(
-                              p.scheduledLabel.isEmpty
-                                  ? Icons.play_arrow_outlined
-                                  : Icons.schedule,
-                              color: Colors.white,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 2),
-                            Flexible(
-                              child: ViewCount(post: p, clock: viewClock),
-                            ),
+                            if (p.scheduledLabel.isEmpty)
+                              const CustomPaint(
+                                size: Size(12, 14),
+                                painter: _GridPlayIcon(),
+                              )
+                            else
+                              const Icon(
+                                Icons.schedule,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            const SizedBox(width: 5),
+                            Flexible(child: ViewCount(post: p)),
                           ],
                         ),
                       ),
@@ -1038,7 +901,7 @@ class _ProfileViewState extends State<ProfileView>
                 crossAxisCount: 3,
                 mainAxisSpacing: 1,
                 crossAxisSpacing: 1,
-                childAspectRatio: .73,
+                childAspectRatio: .75,
               ),
             ),
         ],
@@ -1046,18 +909,148 @@ class _ProfileViewState extends State<ProfileView>
     );
   }
 
-  String _profileCount(String value, int delta) {
-    final baseline = parseCount(value);
-    if (metricsReady ||
-        baseline <= delta ||
-        value.trim().toUpperCase().endsWith('M')) {
-      return value;
-    }
-    if (value.trim().toUpperCase().endsWith('K')) {
-      return _compactCount(baseline - delta, 1000, 'K');
-    }
-    return _groupedCount(baseline - delta);
-  }
+  Widget profileToolbar(SceneData d, SimColors c, bool showTitle) => SizedBox(
+    height: 44,
+    child: Row(
+      children: [
+        SizedBox(
+          width: 48,
+          height: 44,
+          child: Center(child: profileIcon('edit', c.ink)),
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: Image.asset(
+            'assets/scene/profile-rewards.png',
+            width: 23,
+            height: 25,
+          ),
+          tooltip: 'Rewards',
+        ),
+        Expanded(
+          child: showTitle
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        d.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: c.ink,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    Icon(Icons.arrow_drop_down, color: c.ink, size: 17),
+                  ],
+                )
+              : const SizedBox.shrink(),
+        ),
+        SizedBox(
+          width: 38,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Avatar(path: metricsReady ? d.avatar : '', radius: 12),
+              Positioned(
+                right: 2,
+                bottom: 0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: c.bg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Text(
+                      '99',
+                      style: TextStyle(
+                        color: c.ink,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          onPressed: () {},
+          icon: profileIcon('add-friend', c.ink),
+          tooltip: 'Friends',
+        ),
+        IconButton(
+          onPressed: widget.onMenu,
+          tooltip: 'Profile menu',
+          icon: profileIcon('menu', c.ink),
+        ),
+      ],
+    ),
+  );
+
+  Widget profileTabs(SimColors c) => SizedBox(
+    key: _tabsKey,
+    height: 44,
+    child: ColoredBox(
+      color: c.bg,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(5, (i) {
+            final icons = [
+              Icons.grid_on,
+              Icons.face_retouching_natural,
+              Icons.lock_outline,
+              Icons.bookmark_border,
+              Icons.favorite_border,
+            ];
+            return Expanded(
+              child: InkWell(
+                onTap: () => setState(() => section = i),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    if (i == 0)
+                      ImageIcon(
+                        const AssetImage('assets/icons/ref_grid.png'),
+                        size: 24,
+                        color: section == i ? c.ink : c.sub,
+                      )
+                    else if (i == 1)
+                      profileIcon('effects', section == i ? c.ink : c.sub)
+                    else
+                      Icon(
+                        icons[i],
+                        size: 23,
+                        color: section == i ? c.ink : c.sub,
+                      ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 48,
+                      height: 2,
+                      color: section == i ? c.ink : Colors.transparent,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ),
+      ),
+    ),
+  );
+
+  Widget profileIcon(String name, Color color) => ImageIcon(
+    AssetImage('assets/scene/profile-$name.png'),
+    size: 24,
+    color: color,
+  );
 
   Widget stat(String number, String label, SimColors c) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1075,80 +1068,81 @@ class _ProfileViewState extends State<ProfileView>
       FittedBox(
         fit: BoxFit.scaleDown,
         alignment: Alignment.centerLeft,
-        child: Text(label, style: TextStyle(color: c.sub, fontSize: 12)),
+        child: Text(label, style: TextStyle(color: c.sub, fontSize: 13)),
       ),
     ],
   );
 }
 
-class ViewCount extends StatelessWidget {
-  final ScenePost post;
-  final AnimationController clock;
-  const ViewCount({super.key, required this.post, required this.clock});
+class _GridPlayIcon extends CustomPainter {
+  const _GridPlayIcon();
+
   @override
-  Widget build(BuildContext context) {
-    final start = parseCount(post.views);
-    final end = post.endViews > 0
-        ? post.endViews
-        : start + (start * post.growthPercent / 100).round();
-    final style = const TextStyle(
-      color: Colors.white,
-      fontSize: 12,
-      fontWeight: FontWeight.w600,
-    );
-    if (post.scheduledLabel.isNotEmpty) {
-      return Text(
-        post.scheduledLabel,
-        style: style,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      );
-    }
-    if (end <= start) {
-      return Text(
-        post.views,
-        style: style,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      );
-    }
-    return AnimatedBuilder(
-      animation: clock,
-      builder: (_, _) {
-        final elapsed = clock.value * clock.duration!.inMilliseconds;
-        final duration = post.seconds.clamp(1, 3600) * 1000;
-        final phase = Curves.easeOutCubic.transform(
-          (elapsed / duration).clamp(0.0, 1.0),
-        );
-        final value = start + ((end - start) * phase).round();
-        return Text(
-          value == start
-              ? post.views
-              : post.exactViewGrowth && phase < 1
-              ? _groupedCount(value)
-              : _formatLikeSource(
-                  value,
-                  post.views,
-                  precise: post.exactViewGrowth,
-                ),
-          style: style,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        );
-      },
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(1, 1.5)
+      ..lineTo(size.width - 1, size.height / 2)
+      ..lineTo(1, size.height - 1.5)
+      ..close();
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = const Color(0xfffafafa)
+        ..strokeWidth = 1.4
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke,
     );
   }
+
+  @override
+  bool shouldRepaint(_GridPlayIcon oldDelegate) => false;
 }
 
-String _formatLikeSource(int value, String source, {bool precise = false}) {
-  final suffix = source.trim().toUpperCase();
-  if (precise && suffix.endsWith('M')) {
-    return _compactCount(value, 1000000, 'M', decimals: 6);
-  }
-  if (value < 1000000 && suffix.endsWith('K')) {
-    return _compactCount(value, 1000, 'K', decimals: precise ? 3 : 1);
-  }
-  return formatCount(value);
+class ViewCount extends StatelessWidget {
+  final ScenePost post;
+  const ViewCount({super.key, required this.post});
+
+  @override
+  Widget build(BuildContext context) => Text(
+    post.scheduledLabel.isEmpty
+        ? formatViewCount(post.views)
+        : post.scheduledLabel,
+    style: const TextStyle(
+      color: Colors.white,
+      fontSize: 14,
+      height: 1.1,
+      fontWeight: FontWeight.w600,
+      shadows: [Shadow(color: Colors.black54, blurRadius: 3)],
+    ),
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+  );
+}
+
+String formatViewCount(String source) {
+  final value = source.trim().toUpperCase();
+  if (!RegExp(r'^\d[\d, ]*(?:\.\d+)?[KM]?$').hasMatch(value)) return source;
+  final suffix = value.endsWith('M')
+      ? 'M'
+      : value.endsWith('K')
+      ? 'K'
+      : '';
+  final unit = suffix == 'M'
+      ? 1000000
+      : suffix == 'K'
+      ? 1000
+      : 1;
+  final parts = value
+      .substring(0, value.length - suffix.length)
+      .replaceAll(RegExp('[, ]'), '')
+      .split('.');
+  final whole = int.tryParse(parts.first);
+  if (whole == null || whole > 9000000000000000000 ~/ unit) return source;
+  final digits = unit.toString().length - 1;
+  final fraction = parts.length == 2
+      ? int.tryParse(parts.last.padRight(digits, '0').substring(0, digits)) ?? 0
+      : 0;
+  return formatCount(whole * unit + fraction);
 }
 
 String formatCount(int value) {
@@ -1157,8 +1151,11 @@ String formatCount(int value) {
   return _groupedCount(value);
 }
 
-String _compactCount(int value, int unit, String suffix, {int decimals = 1}) =>
-    '${(value / unit).toStringAsFixed(decimals).replaceFirst(RegExp(r'\.?0+$'), '')}$suffix';
+String _compactCount(int value, int unit, String suffix) {
+  final whole = value ~/ unit;
+  final decimal = (value % unit) ~/ (unit ~/ 10);
+  return decimal == 0 ? '$whole$suffix' : '$whole.$decimal$suffix';
+}
 
 String _groupedCount(int value) => value.toString().replaceAllMapped(
   RegExp(r'\B(?=(\d{3})+(?!\d))'),
@@ -1867,7 +1864,7 @@ class _PostSlideState extends State<_PostSlide> with TickerProviderStateMixin {
                                     maxWidth: 66,
                                   ),
                                   child: Text(
-                                    post.views,
+                                    formatViewCount(post.views),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
@@ -3145,7 +3142,7 @@ class _AnalyticsPageState extends State<AnalyticsPage>
                                   children: [
                                     smallStat(
                                       Icons.play_arrow_rounded,
-                                      p.views,
+                                      formatViewCount(p.views),
                                       c,
                                     ),
                                     smallStat(
@@ -3411,7 +3408,11 @@ class OverviewTab extends StatelessWidget {
               mainAxisSpacing: 8,
               crossAxisSpacing: 8,
               children: [
-                metricBox('Video views', post.views, selected: true),
+                metricBox(
+                  'Video views',
+                  formatViewCount(post.views),
+                  selected: true,
+                ),
                 metricBox('Total play time', metric(post, 'playtime')),
                 metricBox('Average watch time', metric(post, 'average')),
                 metricBox('Watched full video', metric(post, 'completion')),

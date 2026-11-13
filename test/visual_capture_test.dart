@@ -33,9 +33,8 @@ void main() {
     final key = GlobalKey();
     final data = SceneData.demo()
       ..darkMode = Platform.environment['SCENE_CAPTURE_DARK'] == '1';
-    data.posts.first
-      ..cover = File('test/fixtures/sample.png').absolute.path
-      ..sampleComments = 'Bellissimo montaggio!\nQuando esce il prossimo?';
+    data.posts.first.sampleComments =
+        'Bellissimo montaggio!\nQuando esce il prossimo?';
     await tester.pumpWidget(
       RepaintBoundary(
         key: key,
@@ -52,10 +51,15 @@ void main() {
         const AssetImage('assets/branding/launch-logo.png'),
         key.currentContext!,
       );
-      await precacheImage(
-        FileImage(File(data.posts.first.cover)),
-        key.currentContext!,
-      );
+      for (final path in [
+        data.avatar,
+        data.studio['bannerImage']!,
+        for (final post in data.posts) post.cover,
+        for (final name in ['rewards', 'edit', 'add-friend', 'menu', 'effects'])
+          'assets/scene/profile-$name.png',
+      ]) {
+        await precacheImage(AssetImage(path), key.currentContext!);
+      }
       for (final name in [
         'ref_home',
         'ref_friends',
@@ -110,6 +114,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pumpAndSettle();
     await shot('scene-profile');
+    await tester.dragFrom(const Offset(135, 440), const Offset(0, -300));
+    await tester.pumpAndSettle();
+    await shot('scene-profile-grid');
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
     await tester.tapAt(tester.getCenter(find.byType(PostCover).first));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 125));
@@ -159,5 +168,19 @@ void main() {
     await shot('scene-studio-analytics-loading');
     await tester.pump(const Duration(milliseconds: 1500));
     await shot('scene-studio-analytics');
+    await tester.ensureVisible(find.text('Viewers'));
+    await tester.tap(find.text('Viewers'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('365 days'));
+    await tester.tap(find.text('365 days'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1100));
+    await shot('scene-studio-viewers');
+    await tester.ensureVisible(find.text('Locations'));
+    await tester.tap(find.text('Locations'));
+    await tester.pumpAndSettle();
+    await tester.dragFrom(const Offset(150, 430), const Offset(0, -480));
+    await tester.pumpAndSettle();
+    await shot('scene-studio-locations');
   }, skip: output == null);
 }

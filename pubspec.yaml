@@ -28,6 +28,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/branding/
+    - assets/scene/
   fonts:
     - family: TikTokSans
       fonts:

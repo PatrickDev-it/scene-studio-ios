@@ -33,7 +33,7 @@ void main() {
 
       await tester.tap(find.text('Profile'));
       await tester.pumpAndSettle();
-      expect(find.text('@il.tuo.brand'), findsOneWidget);
+      expect(find.text('@animalchaos281'), findsOneWidget);
       await tester.longPress(find.text('Profile'));
       await tester.pumpAndSettle();
       expect(find.byType(SetupScreen), findsOneWidget);
@@ -70,9 +70,8 @@ void main() {
     scene.studio['summaryViews'] = '2.4M';
     scene.studioPeriods['0'] = {'postViews': '3.2M', 'postViewsDelta': '11.5'};
     scene.studioPeriods['3'] = {'viewers': '990K'};
-    scene.posts.first
-      ..views = '30.6K'
-      ..endViews = 30619;
+    scene.posts.first.views = '30,689';
+    scene.posts[1].views = '30,820';
     await tester.pumpWidget(
       MaterialApp(home: Simulator(data: scene, startInFeed: true)),
     );
@@ -80,26 +79,27 @@ void main() {
     expect(find.byType(PreviewLaunchArtwork), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 15));
     await tester.pump(const Duration(milliseconds: 355));
-    expect(find.text('Racconta la tua storia.'), findsOneWidget);
+    expect(find.text('Papaya'), findsOneWidget);
     await tester.dragFrom(const Offset(170, 290), const Offset(0, -470));
     await tester.pumpAndSettle();
-    expect(find.text('La tua prossima campagna.'), findsOneWidget);
-    expect(find.text('Un nuovo punto di vista.'), findsNothing);
+    expect(find.text('Keep me guessing forever?'), findsOneWidget);
+    expect(find.text('Carpet cleaning'), findsNothing);
     await tester.pump(const Duration(milliseconds: 4050));
     expect(find.text(' 21'), findsOneWidget);
     await tester.pump(const Duration(milliseconds: 4730));
     expect(find.text('37'), findsOneWidget);
     await tester.tap(find.text('Profile'));
     await tester.pump();
-    expect(find.text('@il.tuo.brand'), findsOneWidget);
+    expect(find.text('@animalchaos281'), findsOneWidget);
     expect(find.byType(PostCover), findsNothing);
     await tester.pump(const Duration(milliseconds: 250));
-    expect(find.byType(PostCover), findsNWidgets(3));
+    expect(find.byType(PostCover), findsWidgets);
     await tester.pump(const Duration(milliseconds: 200));
     await tester.pump(const Duration(milliseconds: 250));
-    expect(find.text('30,611'), findsOneWidget);
+    expect(find.text('30.6K'), findsOneWidget);
     await tester.pump(const Duration(seconds: 1));
-    expect(find.text('30.619K'), findsOneWidget);
+    expect(find.text('30.6K'), findsOneWidget);
+    expect(find.text('30.689K'), findsNothing);
     await tester.dragFrom(const Offset(182, 190), const Offset(0, 215));
     await tester.pump(const Duration(milliseconds: 120));
     expect(find.bySemanticsLabel('Loading'), findsWidgets);
@@ -135,12 +135,66 @@ void main() {
     expect(find.text('Total viewers'), findsOneWidget);
     expect(find.text('990K'), findsOneWidget);
   });
+  testWidgets('la scena di riferimento si carica dal setup', (tester) async {
+    tester.view.physicalSize = const Size(375, 667);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final previous = SceneData.demo()
+      ..name = 'Campagna locale'
+      ..posts = []
+      ..darkMode = true;
+    await SceneStore.save(previous);
+    await tester.pumpWidget(const SceneApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Carica scena di riferimento'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Annulla'));
+    await tester.pumpAndSettle();
+    expect((await SceneStore.load()).name, 'Campagna locale');
+
+    await tester.tap(find.text('Carica scena di riferimento'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Carica scena'));
+    await tester.pumpAndSettle();
+    final restored = await SceneStore.load();
+    expect(restored.name, 'animalchaos281');
+    expect(restored.posts, hasLength(9));
+    expect(restored.darkMode, isTrue);
+  });
+
+  test('le visualizzazioni sono troncate senza arrotondare', () {
+    const cases = {
+      '335': '335',
+      '1882': '1,882',
+      '9,999': '9,999',
+      '10,099': '10K',
+      '30,689': '30.6K',
+      '30.6999K': '30.6K',
+      '119,599': '119.5K',
+      '999,999': '999.9K',
+      '1.2999999M': '1.2M',
+      '1.2999K': '1,299',
+    };
+    for (final entry in cases.entries) {
+      expect(formatViewCount(entry.key), entry.value, reason: entry.key);
+    }
+    final legacy = ScenePost.fromJson({
+      'id': 'old',
+      'views': '30.6K',
+      'endViews': 30689,
+      'growthPercent': 5,
+      'seconds': 2,
+    });
+    expect(formatViewCount(legacy.views), '30.6K');
+    expect(legacy.toJson(), isNot(contains('endViews')));
+  });
+
   test('dati e analitiche si salvano e ripristinano', () async {
     final scene = SceneData.demo();
     scene.handle = 'campagna.prova';
     scene.darkMode = true;
-    scene.posts.first.endViews = 120000;
-    scene.posts.first.seconds = 15;
+    scene.posts.first.views = '120,069';
     scene.posts.first.analytics = {'male': '42'};
     scene.posts.first.sampleComments = 'ottimo';
     scene.homePostIds = ['3', '2', 'missing'];
@@ -152,7 +206,7 @@ void main() {
     final loaded = await SceneStore.load();
     expect(loaded.handle, 'campagna.prova');
     expect(loaded.darkMode, true);
-    expect(loaded.posts.first.endViews, 120000);
+    expect(loaded.posts.first.views, '120,069');
     expect(loaded.posts.first.analytics['male'], '42');
     expect(loaded.posts.first.sampleComments, 'ottimo');
     expect(loaded.homePosts.map((post) => post.id), ['3', '2']);
@@ -176,8 +230,12 @@ void main() {
     await tester.tap(find.byTooltip('Togli dalla Home').first);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Salva sequenza'));
-    expect(scene.homePosts.map((post) => post.id), ['2', '3']);
-    expect(scene.posts.map((post) => post.id), ['1', '2', '3']);
+    expect(scene.homePosts.map((post) => post.id), [
+      for (int i = 2; i <= 9; i++) '$i',
+    ]);
+    expect(scene.posts.map((post) => post.id), [
+      for (int i = 1; i <= 9; i++) '$i',
+    ]);
   });
   const iPhoneViewports = [
     (Size(375, 667), 20.0, 0.0),
@@ -243,11 +301,11 @@ void main() {
         scene.posts.first.sampleComments = 'Commento di prova';
         await tester.pumpWidget(MaterialApp(home: Simulator(data: scene)));
         await tester.pumpAndSettle();
-        expect(find.text('@il.tuo.brand'), findsOneWidget);
-        expect(find.byType(PostCover), findsNWidgets(3));
+        expect(find.text('@animalchaos281'), findsOneWidget);
+        expect(find.byType(PostCover), findsWidgets);
         await tester.tapAt(tester.getCenter(find.byType(PostCover).first));
         await tester.pumpAndSettle();
-        expect(find.text('Un nuovo punto di vista.'), findsOneWidget);
+        expect(find.text('Carpet cleaning'), findsOneWidget);
         await tester.tap(find.byKey(const Key('action_like')));
         await tester.pump(const Duration(milliseconds: 100));
         expect(
@@ -291,7 +349,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byIcon(Icons.arrow_back_ios_new).last);
         await tester.pumpAndSettle();
-        expect(find.text('@il.tuo.brand'), findsOneWidget);
+        expect(find.text('@animalchaos281'), findsOneWidget);
       });
     }
   }

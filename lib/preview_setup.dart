@@ -347,6 +347,7 @@ class _PreviewSettingsEditorState extends State<PreviewSettingsEditor> {
           'Titolo del banner',
           'bannerTitle',
           hint: '#DailyLife Post Contest',
+          lines: 2,
         ),
         studioField('Testo del banner', 'bannerText'),
         studioField('Prima scheda monetizzazione', 'promo1Title'),
@@ -390,6 +391,28 @@ class _PreviewSettingsEditorState extends State<PreviewSettingsEditor> {
             '${entry.key}Delta',
             byPeriod: true,
           ),
+        for (final key in [
+          'postViews',
+          'profileViews',
+          'likes',
+          'comments',
+          'shares',
+        ])
+          studioField(
+            'Differenza ${studioMetricKeys[key]!.toLowerCase()}',
+            '${key}Change',
+            byPeriod: true,
+          ),
+        studioField(
+          'Scala Overview (tre valori separati da ;)',
+          'chartAxis',
+          byPeriod: true,
+        ),
+        studioField(
+          'Scala Viewers (tre valori separati da ;)',
+          'viewerChartAxis',
+          byPeriod: true,
+        ),
         studioField(
           'Grafico Overview (punti separati da ;)',
           'chart',
