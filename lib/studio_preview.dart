@@ -1,0 +1,1986 @@
+part of 'simulation.dart';
+
+class _FeedNavigation extends StatefulWidget {
+  final VoidCallback onSearch;
+  const _FeedNavigation({required this.onSearch});
+
+  @override
+  State<_FeedNavigation> createState() => _FeedNavigationState();
+}
+
+class _FeedNavigationState extends State<_FeedNavigation> {
+  int selected = 3;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 43,
+    child: Row(
+      children: [
+        const SizedBox(
+          width: 44,
+          child: Icon(Icons.live_tv_rounded, color: Colors.white, size: 23),
+        ),
+        for (final (index, label) in const [
+          'New York',
+          'Following',
+          'BLACK\nFRIDAY',
+          'For You',
+        ].indexed)
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => setState(() => selected = index),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: index == selected
+                            ? Colors.white
+                            : Colors.white70,
+                        fontSize: index == 2 ? 11 : 15,
+                        height: 1,
+                        fontStyle: index == 2
+                            ? FontStyle.italic
+                            : FontStyle.normal,
+                        fontWeight: index == selected || index == 2
+                            ? FontWeight.w800
+                            : FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  if (index == selected)
+                    const Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 1,
+                      child: Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 2,
+                          child: ColoredBox(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        SizedBox(
+          width: 45,
+          child: IconButton(
+            tooltip: 'Search',
+            onPressed: widget.onSearch,
+            icon: const Icon(TikIcons.search, color: Colors.white, size: 23),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class PreviewLaunchArtwork extends StatelessWidget {
+  const PreviewLaunchArtwork({super.key});
+
+  @override
+  Widget build(BuildContext context) => ColoredBox(
+    color: Colors.black,
+    child: Center(
+      child: FractionalTranslation(
+        translation: const Offset(0, -.63),
+        child: Image.asset('assets/branding/launch-logo.png', width: 132),
+      ),
+    ),
+  );
+}
+
+class _InboxBadge extends StatelessWidget {
+  final int count;
+  const _InboxBadge({required this.count});
+
+  @override
+  Widget build(BuildContext context) => AnimatedSwitcher(
+    duration: MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 145),
+    transitionBuilder: (child, animation) =>
+        ScaleTransition(scale: animation, child: child),
+    child: Container(
+      key: ValueKey(count),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      decoration: BoxDecoration(
+        color: hotPink,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        count > 99 ? '99+' : count.toString(),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 10,
+          height: 1.4,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
+  );
+}
+
+class _InboxBubble extends StatelessWidget {
+  final VoidCallback onTap;
+  final SceneData data;
+  const _InboxBubble({required this.data, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 180),
+    curve: Curves.easeOutCubic,
+    builder: (_, value, child) => Transform.scale(
+      scale: .85 + .15 * value,
+      alignment: Alignment.bottomCenter,
+      child: Opacity(opacity: value, child: child),
+    ),
+    child: GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: hotPink,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final (icon, key, fallback) in const [
+                    (TikIcons.chat, 'replies', 4),
+                    (TikIcons.heart, 'likes', 4),
+                    (Icons.person, 'follows', 6),
+                  ]) ...[
+                    Icon(icon, color: Colors.white, size: 16),
+                    Text(
+                      ' ${_count(key, fallback)}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (key != 'follows') const SizedBox(width: 6),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(
+            width: 15,
+            height: 7,
+            child: CustomPaint(painter: _BubblePointer()),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  String _count(String key, int fallback) {
+    final value = int.tryParse(data.inbox[key] ?? '') ?? fallback;
+    return value > 99 ? '99+' : math.max(0, value).toString();
+  }
+}
+
+class _BubblePointer extends CustomPainter {
+  const _BubblePointer();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = hotPink);
+  }
+
+  @override
+  bool shouldRepaint(_BubblePointer oldDelegate) => false;
+}
+
+class _InboxPreview extends StatelessWidget {
+  final SimColors colors;
+  final SceneData data;
+  const _InboxPreview({required this.colors, required this.data});
+
+  @override
+  Widget build(BuildContext context) => Column(
+    children: [
+      _StudioHeader(title: 'Inbox', colors: colors, back: false),
+      Expanded(
+        child: ListView(
+          physics: const BouncingScrollPhysics(),
+          children: [
+            for (final (icon, color, title, label) in [
+              (
+                Icons.person_add_alt_1,
+                const Color(0xff17b4cd),
+                'New followers',
+                'People who followed you',
+              ),
+              (
+                Icons.bolt_rounded,
+                hotPink,
+                'Activity',
+                'Likes, comments and mentions',
+              ),
+              (
+                Icons.notifications,
+                const Color(0xff666670),
+                'System notifications',
+                'Account updates',
+              ),
+            ])
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: color,
+                  child: Icon(icon, color: Colors.white),
+                ),
+                title: Text(
+                  title,
+                  style: TextStyle(
+                    color: colors.ink,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                subtitle: Text(label, style: TextStyle(color: colors.sub)),
+              ),
+            if (data.inboxUnread > 0)
+              ListTile(
+                leading: Avatar(path: data.avatar, radius: 20),
+                title: Text(
+                  data.name,
+                  style: TextStyle(
+                    color: colors.ink,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                subtitle: Text('Messages', style: TextStyle(color: colors.sub)),
+              ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+class _ProfileMenu extends StatelessWidget {
+  final SimColors colors;
+  final VoidCallback onStudio;
+  const _ProfileMenu({required this.colors, required this.onStudio});
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final canvas = math.min(screenWidth, _desktopPreviewWidth ?? screenWidth);
+    return Material(
+      type: MaterialType.transparency,
+      child: Padding(
+        padding: EdgeInsets.only(right: (screenWidth - canvas) / 2),
+        child: Align(
+          alignment: Alignment.centerRight,
+          child: SizedBox(
+            width: canvas * .85,
+            height: double.infinity,
+            child: ColoredBox(
+              color: colors.bg,
+              child: SafeArea(
+                left: false,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  children: [
+                    section('Assets'),
+                    item('Balance', Icons.account_balance_wallet_outlined),
+                    Divider(height: 15, color: colors.divider),
+                    section('Personal tools'),
+                    item('Activity center', Icons.access_time),
+                    item('Offline videos', Icons.cloud_download_outlined),
+                    item('Your QR code', Icons.qr_code),
+                    Divider(height: 15, color: colors.divider),
+                    section('Creation & business tools'),
+                    item(
+                      'TikTok Studio',
+                      Icons.person_add_alt,
+                      action: onStudio,
+                    ),
+                    Divider(height: 1, color: colors.divider),
+                    item('Settings and privacy', Icons.settings_outlined),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget section(String text) => Padding(
+    padding: const EdgeInsets.only(top: 7, bottom: 4),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: colors.sub,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+
+  Widget item(String text, IconData icon, {VoidCallback? action}) => InkWell(
+    onTap: action,
+    child: SizedBox(
+      height: 48,
+      child: Row(
+        children: [
+          Icon(icon, color: colors.ink, size: 21),
+          const SizedBox(width: 13),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: colors.ink,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Icon(Icons.chevron_right, color: colors.sub, size: 19),
+        ],
+      ),
+    ),
+  );
+}
+
+class _TikLoading extends StatefulWidget {
+  const _TikLoading();
+
+  @override
+  State<_TikLoading> createState() => _TikLoadingState();
+}
+
+class _TikLoadingState extends State<_TikLoading>
+    with SingleTickerProviderStateMixin {
+  late final motion = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 760),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      motion.stop();
+    } else if (!motion.isAnimating) {
+      motion.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    motion.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'Loading',
+    child: SizedBox(
+      width: 24,
+      height: 15,
+      child: CustomPaint(painter: _LoadingDots(motion)),
+    ),
+  );
+}
+
+class _LoadingDots extends CustomPainter {
+  final Animation<double> motion;
+  _LoadingDots(this.motion) : super(repaint: motion);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final phase = motion.value * math.pi * 2;
+    final dx = math.cos(phase) * 5.2;
+    final depth = math.sin(phase);
+    final center = size.center(Offset.zero);
+    final cyan = center.translate(-dx, 0), pink = center.translate(dx, 0);
+    void dot(Offset offset, Color color, double radius) =>
+        canvas.drawCircle(offset, radius, Paint()..color = color);
+    if (depth < 0) {
+      dot(pink, const Color(0xffed0c53), 5.1 + depth * .7);
+      dot(cyan, const Color(0xff25f4ee), 5.1 - depth * .7);
+    } else {
+      dot(cyan, const Color(0xff25f4ee), 5.1 - depth * .7);
+      dot(pink, const Color(0xffed0c53), 5.1 + depth * .7);
+    }
+    if (dx.abs() < 3) {
+      dot(center, const Color(0xff161823), 4 - dx.abs());
+    }
+  }
+
+  @override
+  bool shouldRepaint(_LoadingDots oldDelegate) => oldDelegate.motion != motion;
+}
+
+Widget _refreshSliver(Future<void> Function() refresh) =>
+    CupertinoSliverRefreshControl(
+      refreshTriggerPullDistance: 74,
+      refreshIndicatorExtent: 36,
+      onRefresh: refresh,
+      builder: (_, mode, pulled, trigger, _) => pulled <= 5
+          ? const SizedBox.shrink()
+          : Center(
+              child: Opacity(
+                opacity: mode == RefreshIndicatorMode.drag
+                    ? (pulled / trigger).clamp(0.0, 1.0)
+                    : 1,
+                child: const _TikLoading(),
+              ),
+            ),
+    );
+
+class _StudioHeader extends StatelessWidget {
+  final String title;
+  final SimColors colors;
+  final bool back;
+  final VoidCallback? settings;
+  const _StudioHeader({
+    required this.title,
+    required this.colors,
+    this.back = true,
+    this.settings,
+  });
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 44,
+    width: double.infinity,
+    child: Stack(
+      alignment: Alignment.center,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 17,
+            height: 1.15,
+            fontWeight: FontWeight.w700,
+            color: colors.ink,
+          ),
+        ),
+        if (back)
+          Positioned(
+            left: 0,
+            child: IconButton(
+              tooltip: 'Back',
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios_new, size: 20, color: colors.ink),
+            ),
+          ),
+        if (settings != null)
+          Positioned(
+            right: 0,
+            child: IconButton(
+              tooltip: 'Settings',
+              onPressed: settings,
+              icon: Icon(Icons.settings_outlined, size: 25, color: colors.ink),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+Widget _studioFrame(BuildContext context, SimColors colors, Widget child) =>
+    AnnotatedRegion<SystemUiOverlayStyle>(
+      value: colors.dark
+          ? SystemUiOverlayStyle.light
+          : SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        backgroundColor: _desktopPreviewWidth == null
+            ? colors.panelBg
+            : const Color(0xff28282b),
+        body: Center(
+          child: SizedBox(
+            width: _desktopPreviewWidth,
+            child: ColoredBox(
+              color: colors.panelBg,
+              child: SafeArea(child: child),
+            ),
+          ),
+        ),
+      ),
+    );
+
+class _StudioPreview extends StatefulWidget {
+  final SceneData data;
+  const _StudioPreview({required this.data});
+
+  @override
+  State<_StudioPreview> createState() => _StudioPreviewState();
+}
+
+class _StudioPreviewState extends State<_StudioPreview> {
+  int stage = 0;
+  bool secondaryReady = false, secondaryRequested = false;
+
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  Future<void> load() async {
+    await Future<void>.delayed(_studioLoadingTime);
+    if (!mounted) return;
+    setState(() => stage = 1);
+    await Future<void>.delayed(_studioCardsTime);
+    if (mounted) setState(() => stage = 2);
+  }
+
+  void openAnalytics() => Navigator.push<void>(
+    context,
+    CupertinoPageRoute(builder: (_) => _StudioAnalytics(data: widget.data)),
+  );
+
+  Future<void> refresh() async {
+    await Future<void>.delayed(_profileRefreshTime);
+    if (mounted) setState(() => secondaryReady = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SimColors(widget.data.darkMode);
+    return DefaultTabController(
+      length: 2,
+      child: _studioFrame(
+        context,
+        c,
+        Column(
+          children: [
+            _StudioHeader(
+              title: 'TikTok Studio',
+              colors: c,
+              settings: () {
+                Navigator.push<void>(
+                  context,
+                  CupertinoPageRoute(
+                    builder: (_) => _studioFrame(
+                      context,
+                      c,
+                      Column(
+                        children: [
+                          _StudioHeader(title: 'Settings', colors: c),
+                          ListTile(
+                            title: Text(
+                              'Notifications',
+                              style: TextStyle(color: c.ink),
+                            ),
+                          ),
+                          ListTile(
+                            title: Text(
+                              'Settings and privacy',
+                              style: TextStyle(color: c.ink),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            TabBar(
+              labelStyle: const TextStyle(
+                fontFamily: 'TikTokSans',
+                fontSize: 15,
+                height: 1.15,
+                fontWeight: FontWeight.w700,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontFamily: 'TikTokSans',
+                fontSize: 15,
+                height: 1.15,
+                fontWeight: FontWeight.w500,
+              ),
+              labelColor: c.ink,
+              unselectedLabelColor: c.sub,
+              indicatorColor: c.ink,
+              indicatorSize: TabBarIndicatorSize.tab,
+              tabs: const [
+                Tab(height: 39, text: 'Posts'),
+                Tab(height: 39, text: 'LIVE'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  if (stage == 0)
+                    const Center(child: _TikLoading())
+                  else
+                    NotificationListener<ScrollUpdateNotification>(
+                      onNotification: (notification) {
+                        if (stage == 2 &&
+                            !secondaryRequested &&
+                            notification.metrics.pixels > 60) {
+                          revealSecondary();
+                        }
+                        return false;
+                      },
+                      child: CustomScrollView(
+                        physics: const BouncingScrollPhysics(
+                          parent: AlwaysScrollableScrollPhysics(),
+                        ),
+                        slivers: [
+                          _refreshSliver(refresh),
+                          SliverToBoxAdapter(
+                            child: stage == 1
+                                ? Column(
+                                    children: [
+                                      for (final height in [
+                                        168.0,
+                                        123.0,
+                                        300.0,
+                                      ])
+                                        AnalyticsCard(
+                                          colors: c,
+                                          child: SizedBox(
+                                            height: height - 36,
+                                            child: const Center(
+                                              child: _TikLoading(),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  )
+                                : Column(
+                                    children: [
+                                      AnalyticsCard(
+                                        colors: c,
+                                        padding: const EdgeInsets.fromLTRB(
+                                          16,
+                                          18,
+                                          16,
+                                          21,
+                                        ),
+                                        child: InkWell(
+                                          onTap: openAnalytics,
+                                          child: Column(
+                                            children: [
+                                              _studioTitle(
+                                                'Analytics',
+                                                c,
+                                                arrow: true,
+                                              ),
+                                              const SizedBox(height: 15),
+                                              Row(
+                                                children: [
+                                                  _studioNumber(
+                                                    'Post views',
+                                                    widget
+                                                            .data
+                                                            .studio['summaryViews'] ??
+                                                        formatCount(
+                                                          _studioViews(
+                                                            widget.data,
+                                                          ),
+                                                        ),
+                                                    c,
+                                                    delta: widget
+                                                        .data
+                                                        .studio['summaryViewsDelta'],
+                                                  ),
+                                                  _studioNumber(
+                                                    'Net followers',
+                                                    widget
+                                                            .data
+                                                            .studio['summaryFollowers'] ??
+                                                        widget.data.followers,
+                                                    c,
+                                                    delta: widget
+                                                        .data
+                                                        .studio['summaryFollowersDelta'],
+                                                  ),
+                                                  _studioNumber(
+                                                    'Likes',
+                                                    widget
+                                                            .data
+                                                            .studio['summaryLikes'] ??
+                                                        formatCount(
+                                                          _studioLikes(
+                                                            widget.data,
+                                                          ),
+                                                        ),
+                                                    c,
+                                                    delta: widget
+                                                        .data
+                                                        .studio['summaryLikesDelta'],
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      AnalyticsCard(
+                                        colors: c,
+                                        padding: const EdgeInsets.fromLTRB(
+                                          11,
+                                          8,
+                                          11,
+                                          8,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 66,
+                                              height: 65,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xffd9edf8),
+                                                borderRadius:
+                                                    BorderRadius.circular(7),
+                                              ),
+                                              child: const Icon(
+                                                Icons.emoji_events_outlined,
+                                                color: Color(0xffbe7737),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    widget
+                                                            .data
+                                                            .studio['bannerTitle'] ??
+                                                        '#DailyLife Post Contest',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: c.ink,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 12),
+                                                  Text(
+                                                    widget
+                                                            .data
+                                                            .studio['bannerText'] ??
+                                                        r'Win up to $2,000 in rewards',
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: hotPink,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Row(
+                                              children: [
+                                                for (var i = 0; i < 4; i++)
+                                                  Container(
+                                                    width: i == 0 ? 9 : 3,
+                                                    height: 3,
+                                                    margin:
+                                                        const EdgeInsets.only(
+                                                          left: 3,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: i == 0
+                                                          ? c.ink
+                                                          : c.divider,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            2,
+                                                          ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      _monetization(c),
+                                      AnalyticsCard(
+                                        colors: c,
+                                        child: secondaryReady
+                                            ? Column(
+                                                children: [
+                                                  _studioTitle(
+                                                    'Inspiration',
+                                                    c,
+                                                    arrow: true,
+                                                  ),
+                                                  const SizedBox(height: 10),
+                                                  _studioPills(
+                                                    [
+                                                      'Topics',
+                                                      'Posts',
+                                                      'Creators',
+                                                      'Searches',
+                                                    ],
+                                                    0,
+                                                    c,
+                                                    (_) {},
+                                                  ),
+                                                  for (final topic
+                                                      in _studioTopics(
+                                                        widget.data,
+                                                      ).take(3))
+                                                    ListTile(
+                                                      contentPadding:
+                                                          EdgeInsets.zero,
+                                                      title: Text(
+                                                        topic,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                        style: TextStyle(
+                                                          color: c.ink,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              )
+                                            : SizedBox(
+                                                height: 89,
+                                                child: secondaryRequested
+                                                    ? const Center(
+                                                        child: _TikLoading(),
+                                                      )
+                                                    : null,
+                                              ),
+                                      ),
+                                      AnalyticsCard(
+                                        colors: c,
+                                        child: _studioTitle(
+                                          'More Tools',
+                                          c,
+                                          arrow: true,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                    ],
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  Center(
+                    child: Text(
+                      widget.data.studio['liveText'] ?? 'No LIVE data',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: c.sub),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> revealSecondary() async {
+    setState(() => secondaryRequested = true);
+    await Future<void>.delayed(const Duration(milliseconds: 690));
+    if (mounted) setState(() => secondaryReady = true);
+  }
+
+  Widget _monetization(SimColors c) => AnalyticsCard(
+    colors: c,
+    padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+    child: Column(
+      children: [
+        _studioTitle('Monetization', c, arrow: true),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            _promo(
+              widget.data.studio['promo1Title'] ?? 'TikTok Shop for Creators',
+              widget.data.studio['promo1Text'] ??
+                  'Get paid to share products you love.',
+              Icons.shopping_bag_outlined,
+              const Color(0xffead0a9),
+            ),
+            const SizedBox(width: 8),
+            _promo(
+              widget.data.studio['promo2Title'] ?? 'Work with Artists',
+              widget.data.studio['promo2Text'] ??
+                  'Create posts with featured sounds.',
+              Icons.music_note,
+              const Color(0xffff6294),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            for (final (icon, text) in [
+              (Icons.videocam_outlined, 'LIVE Incentive Program'),
+              (Icons.chat_outlined, 'Service+'),
+              (Icons.card_giftcard, 'LIVE rewards'),
+              (Icons.shopping_bag_outlined, 'Creator Marketplace'),
+            ])
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: Column(
+                    children: [
+                      Container(
+                        height: 42,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: c.panelBg,
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Icon(icon, color: c.ink, size: 21),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        text,
+                        maxLines: 3,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: c.ink, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(
+            color: c.chip,
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Text(
+            'More ways to get paid',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: c.ink,
+              fontWeight: FontWeight.w700,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _promo(String title, String details, IconData icon, Color color) =>
+      Expanded(
+        child: Container(
+          height: 178,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color.lerp(color, Colors.white, .22)!, color],
+            ),
+          ),
+          child: DefaultTextStyle(
+            style: const TextStyle(
+              fontFamily: 'TikTokSans',
+              color: Colors.black,
+              fontSize: 12,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: Colors.black, size: 21),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  maxLines: 2,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(details, maxLines: 2, overflow: TextOverflow.ellipsis),
+                const Spacer(),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Text(
+                    'Join',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
+int _studioViews(SceneData data) =>
+    data.posts.fold(0, (total, post) => total + parseCount(post.views));
+int _studioLikes(SceneData data) =>
+    data.posts.fold(0, (total, post) => total + parseCount(post.likes));
+
+List<String> _studioTopics(SceneData data) {
+  final topics = data.studio['topics']
+      ?.split('\n')
+      .map((v) => v.trim())
+      .where((v) => v.isNotEmpty)
+      .toList();
+  return topics == null || topics.isEmpty
+      ? [for (final post in data.posts) post.caption]
+      : topics;
+}
+
+Widget _studioTitle(String title, SimColors c, {bool arrow = false}) => Row(
+  children: [
+    Expanded(
+      child: Text(
+        title,
+        style: TextStyle(
+          color: c.ink,
+          fontSize: 17,
+          height: 1.25,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
+    if (arrow) Icon(Icons.chevron_right, size: 19, color: c.ink),
+  ],
+);
+
+Widget _studioNumber(
+  String label,
+  String value,
+  SimColors c, {
+  String? delta,
+}) => Expanded(
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: c.sub,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      const SizedBox(height: 3),
+      Text(
+        value,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: c.ink,
+          fontSize: 21,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      const SizedBox(height: 6),
+      _metricChange(label, value, c, override: delta, summary: true),
+    ],
+  ),
+);
+
+Widget _metricChange(
+  String label,
+  String value,
+  SimColors colors, {
+  String? override,
+  bool summary = false,
+}) {
+  final percentage =
+      _sceneDecimal(override) ??
+      switch (label) {
+        'Post views' => 367.0,
+        'Profile views' => 573.0,
+        'Net followers' => 220.0,
+        'Likes' => 551.0,
+        'Comments' => 119.0,
+        'Shares' => 212.0,
+        _ => 0.0,
+      };
+  if (percentage == 0 || parseCount(value) == 0) {
+    return const SizedBox(height: 14);
+  }
+  final current = parseCount(value);
+  final change = percentage <= -100
+      ? -current
+      : current - (current / (1 + percentage / 100)).round();
+  final down = percentage < 0;
+  final percent = percentage
+      .abs()
+      .toStringAsFixed(1)
+      .replaceFirst(RegExp(r'\.0$'), '');
+  final String sign = down ? '−' : '+';
+  return Text.rich(
+    TextSpan(
+      children: [
+        if (summary)
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: Icon(
+              down ? Icons.arrow_drop_down : Icons.arrow_drop_up,
+              size: 14,
+              color: colors.dark ? const Color(0xff85c9fc) : insightBlue,
+            ),
+          ),
+        TextSpan(
+          text: summary ? '$percent%' : '$sign${formatCount(change.abs())}',
+        ),
+        TextSpan(
+          text: summary ? '  7d' : ' ($sign$percent%)',
+          style: TextStyle(color: colors.sub, fontWeight: FontWeight.w400),
+        ),
+      ],
+    ),
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: TextStyle(
+      color: colors.dark ? const Color(0xff85c9fc) : insightBlue,
+      fontWeight: FontWeight.w600,
+      fontSize: 11,
+      height: 1.3,
+    ),
+  );
+}
+
+double? _sceneDecimal(String? value) {
+  final number = double.tryParse(
+    (value ?? '').trim().replaceAll('%', '').replaceAll(',', '.'),
+  );
+  return number != null && number.isFinite
+      ? number.clamp(-100, 9999999).toDouble()
+      : null;
+}
+
+List<(String, double)> _sceneRatios(
+  String? input,
+  List<(String, double)> defaults,
+) {
+  final rows = <(String, double)>[];
+  for (final line in (input ?? '').split('\n')) {
+    final separator = line.lastIndexOf(':');
+    if (separator < 1) continue;
+    final label = line.substring(0, separator).trim();
+    final value = _sceneDecimal(line.substring(separator + 1));
+    if (label.isNotEmpty && value != null) {
+      rows.add((label, value.clamp(0, 100).toDouble()));
+    }
+  }
+  return rows.isEmpty ? defaults : rows;
+}
+
+List<double>? _sceneSeries(String? input) {
+  final values = (input ?? '')
+      .split(';')
+      .map(_sceneDecimal)
+      .whereType<double>()
+      .where((v) => v >= 0)
+      .take(48)
+      .toList();
+  return values.length < 2 ? null : values;
+}
+
+Widget _studioPills(
+  List<String> labels,
+  int selected,
+  SimColors c,
+  ValueChanged<int> onSelect, {
+  bool blue = false,
+}) => SingleChildScrollView(
+  scrollDirection: Axis.horizontal,
+  child: Row(
+    children: [
+      for (var i = 0; i < labels.length; i++)
+        Padding(
+          padding: const EdgeInsets.only(right: 5),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onSelect(i),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: i != selected
+                    ? c.chip
+                    : blue
+                    ? insightBlue.withValues(alpha: .1)
+                    : c.ink,
+              ),
+              child: Text(
+                labels[i],
+                style: TextStyle(
+                  color: i != selected
+                      ? c.sub
+                      : blue
+                      ? insightBlue
+                      : c.bg,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        ),
+    ],
+  ),
+);
+
+class _StudioAnalytics extends StatefulWidget {
+  final SceneData data;
+  const _StudioAnalytics({required this.data});
+
+  @override
+  State<_StudioAnalytics> createState() => _StudioAnalyticsState();
+}
+
+class _StudioAnalyticsState extends State<_StudioAnalytics> {
+  static const tabs = [
+    'Inspiration',
+    'Overview',
+    'Content',
+    'Viewers',
+    'Followers',
+    'LIVE',
+  ];
+  var range = 0, inspiration = 0, ranking = 0, breakdown = 0, request = 0;
+  bool loading = true, showAll = false, activityDays = false;
+
+  Map<String, String> get config =>
+      widget.data.studioPeriods[range.toString()] ?? const {};
+
+  @override
+  void initState() {
+    super.initState();
+    finishLoading(_analyticsLoadingTime);
+  }
+
+  Future<void> finishLoading(Duration delay) async {
+    final id = ++request;
+    await Future<void>.delayed(delay);
+    if (mounted && id == request) setState(() => loading = false);
+  }
+
+  Future<void> selectRange(int value) async {
+    setState(() {
+      range = value;
+      loading = true;
+    });
+    await finishLoading(const Duration(milliseconds: 1040));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = SimColors(widget.data.darkMode);
+    return DefaultTabController(
+      length: tabs.length,
+      initialIndex: 1,
+      child: _studioFrame(
+        context,
+        c,
+        Column(
+          children: [
+            _StudioHeader(title: 'Analytics', colors: c),
+            TabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 9),
+              labelStyle: const TextStyle(
+                fontFamily: 'TikTokSans',
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontFamily: 'TikTokSans',
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+              labelColor: c.ink,
+              unselectedLabelColor: c.sub,
+              indicatorColor: c.ink,
+              tabs: [for (final label in tabs) Tab(height: 41, text: label)],
+            ),
+            Expanded(
+              child: TabBarView(
+                physics: const BouncingScrollPhysics(),
+                children: [for (var i = 0; i < tabs.length; i++) _page(i, c)],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _page(int index, SimColors c) => CustomScrollView(
+    key: PageStorageKey('studio-stats-$index'),
+    physics: const BouncingScrollPhysics(
+      parent: AlwaysScrollableScrollPhysics(),
+    ),
+    slivers: [
+      _refreshSliver(() => selectRange(range)),
+      SliverList.list(
+        children: [
+          if (index != 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 0),
+              child: _studioPills(studioPeriodLabels, range, c, selectRange),
+            ),
+          if (loading) ...[
+            for (final height in [40.0, 92.0, 88.0, 132.0])
+              AnalyticsCard(
+                colors: c,
+                child: SizedBox(
+                  height: height,
+                  width: double.infinity,
+                  child: ColoredBox(color: c.panelBg),
+                ),
+              ),
+          ] else
+            ...switch (index) {
+              0 => [_inspiration(c)],
+              2 => [_topPosts(c)],
+              3 => [
+                _metrics(c, index),
+                _audience(c, 'Viewer insights'),
+                _activeTimes(c, 'viewer'),
+              ],
+              4 => [
+                _metrics(c, index),
+                _audience(c, 'Follower insights'),
+                _activeTimes(c, 'follower'),
+              ],
+              5 => [_metrics(c, index)],
+              _ => [_metrics(c, index), _traffic(c)],
+            },
+          const SizedBox(height: 12),
+        ],
+      ),
+    ],
+  );
+
+  Widget _metrics(SimColors c, int index) {
+    final scene = widget.data;
+    final total = _studioViews(scene);
+    final factor = const [1.0, 1.17, 1.25, 1.49][range];
+    final views = (total * factor).round();
+    String value(String key, String fallback) => config[key] ?? fallback;
+    final fields = switch (index) {
+      3 => [
+        (
+          'viewers',
+          'Total viewers',
+          value('viewers', formatCount((views * .72).round())),
+        ),
+        (
+          'newViewers',
+          'New viewers',
+          value('newViewers', formatCount((views * .705).round())),
+        ),
+      ],
+      4 => [
+        ('followers', 'Total followers', value('followers', scene.followers)),
+        (
+          'netFollowers',
+          'Net followers',
+          value(
+            'netFollowers',
+            formatCount((parseCount(scene.followers) * .95).round()),
+          ),
+        ),
+      ],
+      5 => [
+        ('liveViews', 'LIVE views', value('liveViews', '0')),
+        ('liveFollowers', 'New followers', value('liveFollowers', '0')),
+      ],
+      _ => [
+        ('postViews', 'Post views', value('postViews', formatCount(views))),
+        (
+          'profileViews',
+          'Profile views',
+          value('profileViews', formatCount((views * .032).round())),
+        ),
+        ('likes', 'Likes', value('likes', formatCount(_studioLikes(scene)))),
+        (
+          'comments',
+          'Comments',
+          value(
+            'comments',
+            formatCount(
+              scene.posts.fold(0, (n, p) => n + parseCount(p.comments)),
+            ),
+          ),
+        ),
+        (
+          'shares',
+          'Shares',
+          value(
+            'shares',
+            formatCount(
+              scene.posts.fold(0, (n, p) => n + parseCount(p.shares)),
+            ),
+          ),
+        ),
+        ('rewards', 'Est. rewards', value('rewards', r'$0.00')),
+      ],
+    };
+    return AnalyticsCard(
+      colors: c,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _studioTitle('Key metrics', c),
+          const SizedBox(height: 4),
+          Text(
+            config['date'] ??
+                const [
+                  'Nov 6 – Nov 12',
+                  'Oct 16 – Nov 12',
+                  'Sep 14 – Nov 12',
+                  'Nov 13, 2025 – Nov 12, 2026',
+                ][range],
+            style: TextStyle(color: c.sub, fontSize: 11),
+          ),
+          const SizedBox(height: 18),
+          for (var i = 0; i < fields.length; i += 2)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  _metricCell(fields[i], c, i == 0),
+                  const SizedBox(width: 8),
+                  _metricCell(fields[i + 1], c, false),
+                ],
+              ),
+            ),
+          const SizedBox(height: 17),
+          SizedBox(
+            width: double.infinity,
+            height: 151,
+            child: CustomPaint(
+              painter: _StudioChart(
+                c,
+                lateSpike: range == 3 || index == 4,
+                series: _sceneSeries(
+                  config[switch (index) {
+                    3 => 'viewerChart',
+                    4 => 'followerChart',
+                    5 => 'liveChart',
+                    _ => 'chart',
+                  }],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  range == 3 ? 'Nov 13, 2025' : 'Nov 6',
+                  style: TextStyle(color: c.sub, fontSize: 10),
+                ),
+                Text('Nov 12', style: TextStyle(color: c.sub, fontSize: 10)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricCell(
+    (String, String, String) entry,
+    SimColors c,
+    bool selected,
+  ) => Expanded(
+    child: Container(
+      padding: const EdgeInsets.fromLTRB(11, 12, 11, 11),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(5),
+        color: selected ? insightBlue.withValues(alpha: .07) : c.surface,
+        border: Border.all(
+          color: selected ? insightBlue.withValues(alpha: .55) : c.divider,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            entry.$2,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: c.ink,
+              fontSize: 12,
+              height: 1.2,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            entry.$3,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: c.ink,
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 5),
+          _metricChange(
+            entry.$2,
+            entry.$3,
+            c,
+            override: config['${entry.$1}Delta'],
+          ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _traffic(SimColors c) => AnalyticsCard(
+    colors: c,
+    child: Column(
+      children: [
+        _studioTitle('Traffic source', c),
+        for (final (label, percent) in _sceneRatios(config['traffic'], [
+          ('For You', 94.3),
+          ('Personal profile', 4.2),
+          ('Search', 1.5),
+        ]))
+          _ratio(label, percent, c),
+      ],
+    ),
+  );
+
+  Widget _inspiration(SimColors c) => AnalyticsCard(
+    colors: c,
+    child: Column(
+      children: [
+        _studioTitle('Creation Inspiration', c),
+        const SizedBox(height: 10),
+        _studioPills(
+          ['Trending topics', 'Similar posts', 'Followers'],
+          inspiration,
+          c,
+          (i) => setState(() => inspiration = i),
+        ),
+        for (final (index, topic) in _studioTopics(
+          widget.data,
+        ).take(10).indexed)
+          ListTile(
+            title: Text(
+              topic,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: c.ink, fontSize: 13),
+            ),
+            trailing: index < widget.data.posts.length
+                ? SizedBox(
+                    width: 36,
+                    height: 42,
+                    child: PostCover(
+                      post: widget.data.posts[index],
+                      index: index,
+                    ),
+                  )
+                : null,
+          ),
+      ],
+    ),
+  );
+
+  Widget _topPosts(SimColors c) {
+    int score(ScenePost post) => switch (ranking) {
+      1 => parseCount(metric(post, 'totalViewers')),
+      2 => parseCount(post.likes),
+      _ => parseCount(post.views),
+    };
+    final posts = widget.data.posts.indexed.toList()
+      ..sort((a, b) => score(b.$2).compareTo(score(a.$2)));
+    return AnalyticsCard(
+      colors: c,
+      child: Column(
+        children: [
+          _studioTitle('Your top posts', c),
+          const SizedBox(height: 10),
+          _studioPills(
+            ['Most views', 'Most new viewers', 'Most likes'],
+            ranking,
+            c,
+            (i) => setState(() => ranking = i),
+            blue: true,
+          ),
+          for (final (rank, entry) in posts.take(10).indexed)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    (rank + 1).toString(),
+                    style: TextStyle(color: c.ink, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    width: 42,
+                    height: 54,
+                    child: PostCover(post: entry.$2, index: entry.$1),
+                  ),
+                ],
+              ),
+              title: Text(
+                entry.$2.caption,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: c.ink,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              subtitle: Text(
+                '${entry.$2.views} views',
+                style: TextStyle(color: c.sub, fontSize: 11),
+              ),
+              onTap: () => Navigator.push<void>(
+                context,
+                CupertinoPageRoute(
+                  builder: (_) =>
+                      AnalyticsPage(post: entry.$2, data: widget.data),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _audience(SimColors c, String title) {
+    final prefix = title.startsWith('Follower') ? 'follower' : 'viewer';
+    final gender = _sceneRatios(config['${prefix}Gender'], [
+      ('Male', 65),
+      ('Female', 33),
+      ('Other', 2),
+    ]);
+    final age = _sceneRatios(config['${prefix}Age'], [
+      ('18 - 24', 36),
+      ('25 - 34', 31),
+      ('35 - 44', 17),
+      ('45 - 54', 12),
+      ('55+', 4),
+    ]);
+    final locations = _sceneRatios(config['${prefix}Locations'], [
+      if (range == 3) ...[
+        ('United States', 17.4),
+        ('Philippines', 14.2),
+        ('South Africa', 8.6),
+        ('Canada', 5.5),
+        ('Australia', 5.1),
+      ] else ...[
+        ('Philippines', 16.4),
+        ('South Africa', 9.8),
+        ('United States', 7),
+        ('Canada', 6.1),
+        ('Australia', 5.7),
+      ],
+      ('United Kingdom', 4.7),
+      ('Other', 37.5),
+    ]);
+    const legendColors = [insightBlue, Color(0xff82bdec), Color(0xffb8d9f2)];
+    return AnalyticsCard(
+      colors: c,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _studioTitle(title, c),
+          const SizedBox(height: 10),
+          _studioPills(
+            ['Gender', 'Age', 'Locations'],
+            breakdown,
+            c,
+            (i) => setState(() => breakdown = i),
+            blue: true,
+          ),
+          if (breakdown == 0) ...[
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 92,
+              child: CustomPaint(
+                painter: GenderPainter(
+                  gender.first.$2,
+                  gender.length > 1 ? gender[1].$2 : 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 13),
+            for (final (index, entry) in gender.indexed) ...[
+              SizedBox(
+                height: 40,
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.circle,
+                      color: legendColors[index % legendColors.length],
+                      size: 8,
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Text(
+                        entry.$1,
+                        style: TextStyle(
+                          color: c.ink,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      _percentLabel(entry.$2),
+                      style: TextStyle(
+                        color: c.ink,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (index + 1 < gender.length)
+                Divider(height: 1, color: c.divider),
+            ],
+          ] else if (breakdown == 1)
+            for (final (label, ratio) in age) _ratio(label, ratio, c)
+          else ...[
+            for (final (label, ratio) in locations.take(
+              showAll ? locations.length : 5,
+            ))
+              _ratio(label, ratio, c),
+            if (locations.length > 5)
+              Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor: c.chip,
+                      foregroundColor: c.ink,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    onPressed: () => setState(() => showAll = !showAll),
+                    child: Text(showAll ? 'See less' : 'See more'),
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _percentLabel(double value) =>
+      '${value.toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '')}%';
+
+  Widget _ratio(String name, double value, SimColors c) => Padding(
+    padding: const EdgeInsets.only(top: 12),
+    child: Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: c.ink, fontSize: 14),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _percentLabel(value),
+              style: TextStyle(
+                color: c.ink,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 5),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(3),
+          child: LinearProgressIndicator(
+            value: value / 100,
+            minHeight: 6,
+            color: insightBlue,
+            backgroundColor: c.chip,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _activeTimes(SimColors c, String prefix) => AnalyticsCard(
+    colors: c,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _studioTitle('Most active times', c),
+        const SizedBox(height: 8),
+        _studioPills(
+          ['Hours', 'Days'],
+          activityDays ? 1 : 0,
+          c,
+          (i) => setState(() => activityDays = i == 1),
+          blue: true,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          config['${prefix}Active'] ?? 'In the last 7 days, your viewers were most active on Thursday, between 5pm and 6pm.',
+          style: TextStyle(color: c.ink, fontSize: 13),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          height: 116,
+          child: CustomPaint(
+            painter: _StudioChart(
+              c,
+              bars: true,
+              lateSpike: activityDays,
+              series: _sceneSeries(
+                config['$prefix${activityDays ? 'Days' : 'Hours'}'],
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _StudioChart extends CustomPainter {
+  final SimColors colors;
+  final bool lateSpike, bars;
+  final List<double>? series;
+  const _StudioChart(
+    this.colors, {
+    this.lateSpike = false,
+    this.bars = false,
+    this.series,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (var i = 0; i < 5; i++) {
+      final y = size.height * i / 4;
+      canvas.drawLine(
+        Offset(0, y),
+        Offset(size.width, y),
+        Paint()..color = colors.divider,
+      );
+    }
+    final samples = series;
+    final maximum = samples == null
+        ? 1.0
+        : math.max(1.0, samples.reduce(math.max));
+    if (bars) {
+      final count = samples?.length ?? (lateSpike ? 7 : 24);
+      final peak = samples?.indexOf(maximum) ?? count - 3;
+      for (var i = 0; i < count; i++) {
+        final width = size.width / count;
+        final height =
+            size.height *
+            (samples == null
+                ? .14 + .52 * i / count + .09 * math.sin(i * .94)
+                : .94 * samples[i] / maximum);
+        canvas.drawRect(
+          Rect.fromLTWH(i * width, size.height - height, width - 2, height),
+          Paint()..color = insightBlue.withValues(alpha: i == peak ? 1 : .22),
+        );
+      }
+      return;
+    }
+    final values = samples == null
+        ? lateSpike
+              ? [.91, .91, .91, .90, .89, .85, .67, .09]
+              : [.12, .32, .72, .91, .91, .89, .75]
+        : samples.map((value) => 1 - .94 * value / maximum).toList();
+    final line = Path();
+    for (final (index, value) in values.indexed) {
+      final x = size.width * index / (values.length - 1);
+      final y = size.height * value;
+      index == 0 ? line.moveTo(x, y) : line.lineTo(x, y);
+    }
+    final fill = Path.from(line)
+      ..lineTo(size.width, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+    canvas.drawPath(
+      fill,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x440672d8), Color(0x020672d8)],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawPath(
+      line,
+      Paint()
+        ..color = const Color(0xff57a7e0)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_StudioChart oldDelegate) =>
+      oldDelegate.colors.dark != colors.dark ||
+      oldDelegate.lateSpike != lateSpike ||
+      oldDelegate.bars != bars ||
+      oldDelegate.series != series;
+}

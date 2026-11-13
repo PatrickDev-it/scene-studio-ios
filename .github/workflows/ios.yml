@@ -1,0 +1,58 @@
+name: Build iOS
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      FLUTTER_VERSION: 3.47.2
+      FLUTTER_SHA256: f456fd6733053d9301828a2e702d6cbec872923126809aa8c48eb0a696d6cc01
+
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Configure toolchain
+        run: |
+          set -euo pipefail
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          curl --fail --silent --show-error --location --retry 3 --output "$RUNNER_TEMP/flutter.zip" \
+            "https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_arm64_${FLUTTER_VERSION}-stable.zip"
+          printf '%s  %s\n' "$FLUTTER_SHA256" "$RUNNER_TEMP/flutter.zip" | shasum -a 256 -c
+          unzip -q "$RUNNER_TEMP/flutter.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+
+      - name: Build release for iPhone
+        run: |
+          set -euo pipefail
+          flutter --version
+          flutter pub get --enforce-lockfile
+          flutter build ios --release --no-codesign --no-pub
+
+      - name: Verify device build
+        run: |
+          set -euo pipefail
+          app=build/ios/iphoneos/Runner.app
+          minimum_ios=$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$app/Info.plist")
+          test "$minimum_ios" = "15.0"
+          xcrun lipo -verify_arch arm64 "$app/Runner"
+          echo "iOS deployment target: $minimum_ios (arm64)"
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/Runner-unsigned.zip"
+
+      - name: Publish unsigned app
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: Scene-Studio-iOS-unsigned
+          path: ${{ runner.temp }}/Runner-unsigned.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
