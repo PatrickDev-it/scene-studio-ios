@@ -2,12 +2,18 @@ name: Build iOS
 
 on:
   workflow_dispatch:
+    inputs:
+      signed:
+        description: Export an encrypted Ad Hoc IPA for registered iPhones
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   ios:
+    if: github.ref == 'refs/heads/main'
     runs-on: macos-26
     timeout-minutes: 30
     env:
@@ -32,6 +38,7 @@ jobs:
           echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
 
       - name: Build release for iPhone
+        if: ${{ !inputs.signed }}
         run: |
           set -euo pipefail
           flutter --version
@@ -39,6 +46,7 @@ jobs:
           flutter build ios --release --no-codesign --no-pub
 
       - name: Verify device build
+        if: ${{ !inputs.signed }}
         run: |
           set -euo pipefail
           app=build/ios/iphoneos/Runner.app
@@ -49,10 +57,38 @@ jobs:
           ditto -c -k --keepParent "$app" "$RUNNER_TEMP/Runner-unsigned.zip"
 
       - name: Publish unsigned app
+        if: ${{ !inputs.signed }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: Scene-Studio-iOS-unsigned
           path: ${{ runner.temp }}/Runner-unsigned.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
+
+      - name: Prepare signed build
+        if: inputs.signed
+        run: |
+          set -euo pipefail
+          command -v age >/dev/null || brew install age
+          flutter pub get --enforce-lockfile
+          flutter build ios --release --config-only --no-codesign --no-pub
+
+      - name: Sign and encrypt Ad Hoc IPA
+        if: inputs.signed
+        env:
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+          IOS_AGE_RECIPIENT: ${{ vars.IOS_AGE_RECIPIENT }}
+        run: bash .github/scripts/export-ios.sh
+
+      - name: Publish encrypted IPA
+        if: inputs.signed
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: Scene-Studio-iOS-AdHoc-encrypted
+          path: ${{ runner.temp }}/Scene-Studio-iOS.ipa.age
           if-no-files-found: error
           compression-level: 0
           retention-days: 3
