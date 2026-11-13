@@ -116,6 +116,6 @@ unzip -q "${ipa_files[0]}" -d "$signing_dir/verified"
 app="$signing_dir/verified/Payload/Runner.app"
 test -f "$app/embedded.mobileprovision"
 test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$app/Info.plist")" = "15.0"
-xcrun lipo -verify_arch arm64 "$app/Runner"
+xcrun lipo "$app/Runner" -verify_arch arm64
 codesign --verify --deep --strict "$app"
 age -r "$IOS_AGE_RECIPIENT" -o "$RUNNER_TEMP/Scene-Studio-iOS.ipa.age" "${ipa_files[0]}"

@@ -52,7 +52,7 @@ jobs:
           app=build/ios/iphoneos/Runner.app
           minimum_ios=$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$app/Info.plist")
           test "$minimum_ios" = "15.0"
-          xcrun lipo -verify_arch arm64 "$app/Runner"
+          xcrun lipo "$app/Runner" -verify_arch arm64
           echo "iOS deployment target: $minimum_ios (arm64)"
           ditto -c -k --keepParent "$app" "$RUNNER_TEMP/Runner-unsigned.zip"
 
