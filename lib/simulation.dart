@@ -21,7 +21,6 @@ part 'studio_preview.dart';
 const _badgeDelay = Duration(milliseconds: 4050);
 const _badgeHold = Duration(milliseconds: 4720);
 const _profileGridDelay = Duration(milliseconds: 250);
-const _profileMetricsDelay = Duration(milliseconds: 450);
 const _profileRefreshTime = Duration(milliseconds: 540);
 const _studioLoadingTime = Duration(milliseconds: 1620);
 const _studioCardsTime = Duration(milliseconds: 365);
@@ -599,7 +598,6 @@ class _ProfileViewState extends State<ProfileView> {
   final tileKeys = <String, GlobalKey>{};
   final _tabsKey = GlobalKey();
   late bool coversReady = !widget.animateEntry;
-  late bool metricsReady = !widget.animateEntry;
 
   @override
   void initState() {
@@ -611,9 +609,6 @@ class _ProfileViewState extends State<ProfileView> {
     await Future<void>.delayed(_profileGridDelay);
     if (!mounted) return;
     setState(() => coversReady = true);
-    await Future<void>.delayed(_profileMetricsDelay - _profileGridDelay);
-    if (!mounted) return;
-    setState(() => metricsReady = true);
     widget.onShown();
   }
 
@@ -930,12 +925,19 @@ class _ProfileViewState extends State<ProfileView> {
         ),
         SizedBox(
           width: 38,
+          height: 28,
           child: Stack(
-            alignment: Alignment.center,
             children: [
-              Avatar(path: metricsReady ? d.avatar : '', radius: 12),
               Positioned(
-                right: 2,
+                left: 2,
+                top: 0,
+                child: CustomPaint(
+                  size: const Size.square(26),
+                  painter: _AnonymousProfileAvatar(dark: c.dark),
+                ),
+              ),
+              Positioned(
+                right: 0,
                 bottom: 0,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -948,7 +950,8 @@ class _ProfileViewState extends State<ProfileView> {
                       '99',
                       style: TextStyle(
                         color: c.ink,
-                        fontSize: 10,
+                        fontSize: 11,
+                        height: 1.05,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -1051,6 +1054,40 @@ class _ProfileViewState extends State<ProfileView> {
       ),
     ],
   );
+}
+
+class _AnonymousProfileAvatar extends CustomPainter {
+  final bool dark;
+  const _AnonymousProfileAvatar({required this.dark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final circle = Offset.zero & size;
+    canvas.clipPath(Path()..addOval(circle));
+    canvas.drawRect(
+      circle,
+      Paint()..color = dark ? const Color(0xff49494e) : const Color(0xffdfdfe2),
+    );
+    final silhouette = Paint()
+      ..color = dark ? const Color(0xff9a9aa0) : Colors.white;
+    canvas.drawCircle(
+      Offset(size.width * .5, size.height * .45),
+      size.width * .19,
+      silhouette,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width * .5, size.height),
+        width: size.width * .77,
+        height: size.height * .63,
+      ),
+      silhouette,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_AnonymousProfileAvatar oldDelegate) =>
+      dark != oldDelegate.dark;
 }
 
 class _GridPlayIcon extends CustomPainter {
