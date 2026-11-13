@@ -812,25 +812,13 @@ class _ProfileViewState extends State<ProfileView> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 5),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: c.chip,
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      child: Text(
-                        '+ Add college',
-                        style: TextStyle(
-                          color: c.ink,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                  padding: const EdgeInsets.fromLTRB(26, 13, 16, 10),
+                  child: Text(
+                    '+ Add college',
+                    style: TextStyle(
+                      color: c.ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -916,16 +904,7 @@ class _ProfileViewState extends State<ProfileView> {
         SizedBox(
           width: 48,
           height: 44,
-          child: Center(child: profileIcon('edit', c.ink)),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: Image.asset(
-            'assets/scene/profile-rewards.png',
-            width: 23,
-            height: 25,
-          ),
-          tooltip: 'Rewards',
+          child: Center(child: profileIcon('edit', c.ink, size: 18)),
         ),
         Expanded(
           child: showTitle
@@ -1046,9 +1025,9 @@ class _ProfileViewState extends State<ProfileView> {
     ),
   );
 
-  Widget profileIcon(String name, Color color) => ImageIcon(
+  Widget profileIcon(String name, Color color, {double size = 24}) => ImageIcon(
     AssetImage('assets/scene/profile-$name.png'),
-    size: 24,
+    size: size,
     color: color,
   );
 

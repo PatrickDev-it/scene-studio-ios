@@ -55,7 +55,7 @@ void main() {
         data.avatar,
         data.studio['bannerImage']!,
         for (final post in data.posts) post.cover,
-        for (final name in ['rewards', 'edit', 'add-friend', 'menu', 'effects'])
+        for (final name in ['edit', 'add-friend', 'menu', 'effects'])
           'assets/scene/profile-$name.png',
       ]) {
         await precacheImage(AssetImage(path), key.currentContext!);
