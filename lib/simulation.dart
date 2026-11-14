@@ -936,7 +936,7 @@ class _ProfileViewState extends State<ProfileView> {
                       Positioned(
                         left: 6,
                         right: 5,
-                        bottom: 5,
+                        bottom: 4,
                         child: Row(
                           children: [
                             if (p.scheduledLabel.isEmpty)
@@ -950,7 +950,7 @@ class _ProfileViewState extends State<ProfileView> {
                                 color: Colors.white,
                                 size: 16,
                               ),
-                            const SizedBox(width: 5),
+                            const SizedBox(width: 6),
                             Flexible(child: ViewCount(post: p)),
                           ],
                         ),
@@ -1277,7 +1277,7 @@ class ViewCount extends StatelessWidget {
       color: Colors.white,
       fontSize: 14,
       height: 1.1,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w400,
       shadows: [Shadow(color: Colors.black54, blurRadius: 3)],
     ),
     maxLines: 1,
