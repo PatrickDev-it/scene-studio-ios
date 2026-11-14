@@ -524,8 +524,8 @@ class SimBottomBar extends StatelessWidget {
                         if (i == 2)
                           Image.asset(
                             'assets/icons/${dark ? 'Create' : 'Create-dark'}.png',
-                            width: 43,
-                            height: 30,
+                            width: 46,
+                            height: 31,
                             fit: BoxFit.contain,
                           )
                         else
@@ -539,21 +539,26 @@ class SimBottomBar extends StatelessWidget {
                                   ? (selected == i ? 'Inbox-active' : 'Inbox')
                                   : (selected == i ? 'ref_profile' : 'Profile')}.png',
                             ),
-                            size: 22,
+                            size: 26,
                             color: selected == i
                                 ? fg
-                                : fg.withValues(alpha: .62),
+                                : fg.withValues(alpha: dark ? .66 : .46),
                           ),
                         if (labels[i].isNotEmpty)
-                          Text(
-                            labels[i],
-                            style: TextStyle(
-                              fontSize: 10,
-                              height: 1.15,
-                              fontWeight: FontWeight.w600,
-                              color: selected == i
-                                  ? fg
-                                  : fg.withValues(alpha: .62),
+                          Flexible(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                labels[i],
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  height: 1.15,
+                                  fontWeight: FontWeight.w500,
+                                  color: selected == i
+                                      ? fg
+                                      : fg.withValues(alpha: dark ? .66 : .46),
+                                ),
+                              ),
                             ),
                           ),
                       ],
@@ -561,8 +566,8 @@ class SimBottomBar extends StatelessWidget {
                   ),
                   if (i == 3 && unread > 0)
                     Positioned(
-                      top: 2,
-                      left: 37,
+                      top: 3,
+                      left: 36,
                       child: _InboxBadge(count: unread),
                     ),
                 ],
@@ -772,14 +777,14 @@ class _ProfileViewState extends State<ProfileView> {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: Text(
                     d.bio,
                     style: TextStyle(color: c.ink, fontSize: 14, height: 1.3),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(26, 13, 16, 10),
+                  padding: const EdgeInsets.fromLTRB(26, 11, 16, 8),
                   child: Text(
                     '+ Add college',
                     style: TextStyle(

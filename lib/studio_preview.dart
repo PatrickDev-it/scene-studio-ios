@@ -111,18 +111,22 @@ class _InboxBadge extends StatelessWidget {
         ScaleTransition(scale: animation, child: child),
     child: Container(
       key: ValueKey(count),
+      constraints: BoxConstraints(minWidth: count < 10 ? 16 : 24),
+      height: 16,
       padding: const EdgeInsets.symmetric(horizontal: 4),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: hotPink,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         count > 99 ? '99+' : count.toString(),
+        maxLines: 1,
         style: const TextStyle(
           color: Colors.white,
-          fontSize: 10,
-          height: 1.4,
-          fontWeight: FontWeight.w700,
+          fontSize: 12,
+          height: 1,
+          fontWeight: FontWeight.w600,
         ),
       ),
     ),
@@ -620,6 +624,7 @@ class _StudioPreviewState extends State<_StudioPreview> {
               unselectedLabelColor: c.sub,
               indicatorColor: c.ink,
               indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: const EdgeInsets.symmetric(horizontal: 8),
               tabs: const [
                 Tab(height: 39, text: 'Posts'),
                 Tab(height: 39, text: 'LIVE'),
@@ -1265,14 +1270,14 @@ Widget _studioPills(
     children: [
       for (var i = 0; i < labels.length; i++)
         Padding(
-          padding: const EdgeInsets.only(right: 5),
+          padding: const EdgeInsets.only(right: 8),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => onSelect(i),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(blue ? 6 : 20),
                 color: i != selected
                     ? c.chip
                     : blue
@@ -1288,7 +1293,7 @@ Widget _studioPills(
                       ? insightBlue
                       : c.bg,
                   fontSize: 14,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
