@@ -707,15 +707,8 @@ class _ProfileViewState extends State<ProfileView> {
                                     ),
                                   ),
                                 ),
-                                Icon(
-                                  Icons.arrow_drop_down,
-                                  color: c.ink,
-                                  size: 18,
-                                ),
-                                const CircleAvatar(
-                                  radius: 3,
-                                  backgroundColor: hotPink,
-                                ),
+                                const SizedBox(width: 2),
+                                _ProfileAccountIndicator(color: c.ink),
                               ],
                             ),
                             const SizedBox(height: 3),
@@ -750,31 +743,10 @@ class _ProfileViewState extends State<ProfileView> {
                             child: Avatar(path: d.avatar, radius: 47),
                           ),
                           Positioned(
-                            top: 0,
-                            left: 3,
-                            right: 3,
-                            child: DecoratedBox(
-                              decoration: BoxDecoration(
-                                color: c.surface,
-                                borderRadius: BorderRadius.circular(18),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 5,
-                                  ),
-                                ],
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 5,
-                                ),
-                                child: Text(
-                                  "What's up?",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: c.sub, fontSize: 13),
-                                ),
-                              ),
-                            ),
+                            top: -1,
+                            left: 11,
+                            right: 11,
+                            child: _ProfileThoughtBubble(colors: c),
                           ),
                           Positioned(
                             bottom: 0,
@@ -918,7 +890,7 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                       ),
                     ),
-                    Icon(Icons.arrow_drop_down, color: c.ink, size: 17),
+                    _ProfileAccountIndicator(color: c.ink, compact: true),
                   ],
                 )
               : const SizedBox.shrink(),
@@ -1054,6 +1026,75 @@ class _ProfileViewState extends State<ProfileView> {
       ),
     ],
   );
+}
+
+class _ProfileAccountIndicator extends StatelessWidget {
+  final Color color;
+  final bool compact;
+  const _ProfileAccountIndicator({required this.color, this.compact = false});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: compact ? 19 : 22,
+    height: compact ? 18 : 24,
+    child: Stack(
+      children: [
+        Positioned(
+          left: -2,
+          top: compact ? 1 : 3,
+          child: Icon(Icons.arrow_drop_down, color: color, size: 22),
+        ),
+        Positioned(
+          top: compact ? 0 : 2,
+          right: compact ? 0 : 1,
+          child: CircleAvatar(
+            radius: compact ? 3 : 4,
+            backgroundColor: hotPink,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _ProfileThoughtBubble extends StatelessWidget {
+  final SimColors colors;
+  const _ProfileThoughtBubble({required this.colors});
+
+  @override
+  Widget build(BuildContext context) {
+    final fill = colors.dark ? const Color(0xff262626) : Colors.white;
+    BoxDecoration dot() => BoxDecoration(color: fill, shape: BoxShape.circle);
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          left: 14,
+          bottom: -4,
+          child: Container(width: 9, height: 8, decoration: dot()),
+        ),
+        Positioned(
+          left: 21,
+          bottom: -9,
+          child: Container(width: 4, height: 4, decoration: dot()),
+        ),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 7),
+          decoration: BoxDecoration(
+            color: fill,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: colors.divider.withValues(alpha: .55)),
+          ),
+          child: Text(
+            'Whisper,\nwhisper',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: colors.sub, fontSize: 13, height: 1.16),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _AnonymousProfileAvatar extends CustomPainter {
