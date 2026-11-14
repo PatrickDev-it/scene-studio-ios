@@ -182,17 +182,26 @@ void main() {
     await tester.tap(find.text('Viewers'));
     await tester.pumpAndSettle();
     await shot('scene-studio-viewers-7d');
-    await tester.ensureVisible(find.text('365 days'));
+    await tester.tap(find.text('Locations'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('365 days'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1100));
     await shot('scene-studio-viewers');
-    await tester.ensureVisible(find.text('Locations'));
-    await tester.tap(find.text('Locations'));
-    await tester.pumpAndSettle();
-    await tester.dragFrom(const Offset(150, 430), const Offset(0, -480));
+    await tester.dragFrom(const Offset(150, 430), const Offset(0, -436));
     await tester.pumpAndSettle();
     await shot('scene-studio-locations');
+    await tester.dragFrom(const Offset(150, 450), const Offset(0, -210));
+    await tester.pumpAndSettle();
+    await shot('scene-studio-active-times');
+    await tester.dragFrom(const Offset(150, 240), const Offset(0, 210));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Age'));
+    await tester.pumpAndSettle();
+    await shot('scene-studio-viewers-age');
+    await tester.tap(find.text('Gender'));
+    await tester.pumpAndSettle();
+    await shot('scene-studio-viewers-gender');
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(
       RepaintBoundary(

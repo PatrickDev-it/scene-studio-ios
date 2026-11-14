@@ -221,6 +221,81 @@ void main() {
     },
   );
 
+  testWidgets(
+    'il setup modifica le percentuali Viewers 365 senza perdere le altre righe',
+    (tester) async {
+      tester.view.physicalSize = const Size(375, 667);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await SceneStore.save(SceneData.demo()..startupMode = StartupMode.setup);
+      await tester.pumpWidget(const SceneApp());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Profile menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('TikTok Studio'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 2010));
+      await tester.tap(find.text('Analytics'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1850));
+      await tester.ensureVisible(find.text('Viewers'));
+      await tester.tap(find.text('Viewers'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('365 days'));
+      await tester.pump(const Duration(milliseconds: 1100));
+      await tester.tap(find.text('Locations'));
+      await tester.pumpAndSettle();
+      await tester.dragFrom(const Offset(150, 500), const Offset(0, -220));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('United States'));
+      await tester.pumpAndSettle();
+      expect(find.text('Modifica United States'), findsOneWidget);
+      await tester.enterText(find.byType(TextFormField).last, '21,5');
+      await tester.tap(find.text('Salva'));
+      await tester.pumpAndSettle();
+      expect(find.text('21.5%'), findsOneWidget);
+      expect(find.text('14.2%'), findsOneWidget);
+      final stored = await SceneStore.load();
+      final rows = analyticsRatioRows(
+        stored.studioPeriods['3']?['viewerLocations'],
+        [],
+      );
+      expect(rows.first, ('United States', 21.5));
+      expect(rows[1], ('Philippines', 14.2));
+      expect(rows, hasLength(7));
+
+      await tester.tap(find.text('Age'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('18 - 24'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).last, '39');
+      await tester.tap(find.text('Salva'));
+      await tester.pumpAndSettle();
+      expect(
+        analyticsRatioRows(
+          (await SceneStore.load()).studioPeriods['3']?['viewerAge'],
+          [],
+        ).first,
+        ('18 - 24', 39),
+      );
+
+      await tester.tap(find.text('Gender'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Male'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField).last, '61');
+      await tester.tap(find.text('Salva'));
+      await tester.pumpAndSettle();
+      expect(
+        analyticsRatioRows(
+          (await SceneStore.load()).studioPeriods['3']?['viewerGender'],
+          [],
+        ).first,
+        ('Male', 61),
+      );
+    },
+  );
+
   test('le visualizzazioni sono troncate senza arrotondare', () {
     const cases = {
       '335': '335',

@@ -7,7 +7,7 @@ Il setup permette di personalizzare profilo, video, miniature, contatori, commen
 ## Uso
 
 1. Su Windows aprire `Avvia Scene Studio.cmd`. Il setup mostra il profilo con la stessa navigazione del Viewer.
-2. Toccare nome, username, foto, bio e contatori per modificarli. Tenere premuta una miniatura per impostare video locale, copertina e metriche. Aprire TikTok Studio dal menu del profilo: i valori del riepilogo, i testi del banner, le schede Monetization e le metriche nelle pagine Analytics si modificano sul posto.
+2. Toccare nome, username, foto, bio e contatori per modificarli. Tenere premuta una miniatura per impostare video locale, copertina e metriche. Aprire TikTok Studio dal menu del profilo: i valori del riepilogo, i testi del banner, le schede Monetization e le metriche nelle pagine Analytics si modificano sul posto. Toccare una riga di località, età, genere o sorgente di traffico per cambiarne nome e percentuale; le altre righe restano intatte.
 3. Il menu **Impostazioni scena** apre la sequenza Home, il badge Inbox, il tema, la scena di riferimento e **Tutte le impostazioni** per i campi avanzati, compresa la modalità all’avvio.
 4. Premere **Viewer** per ripetere l’avvio dalla Home. Tenere premuto **Profile** in basso per tornare al setup. Lo swipe verso il basso aggiorna la griglia.
 5. La griglia mostra numeri interi sotto 10.000 e abbrevia i valori maggiori troncando al primo decimale.

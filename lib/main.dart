@@ -166,6 +166,92 @@ class _VisualSetupScreenState extends State<VisualSetupScreen> {
       return;
     }
     final parts = path.split('/');
+    if (parts.length == 5 && parts[0] == 'period' && parts[2] == 'ratio') {
+      final period = int.tryParse(parts[1]);
+      final index = int.tryParse(parts[4]);
+      final field = parts[3];
+      if (period == null || index == null) return;
+      final rows = analyticsRatioRows(
+        widget.data.studioPeriods[parts[1]]?[field],
+        analyticsRatioDefaults(field, period),
+      );
+      if (index < 0 || index >= rows.length) return;
+      final formKey = GlobalKey<FormState>();
+      var name = rows[index].$1;
+      var percentage = rows[index].$2.toString();
+      final result = await showDialog<(String, double)>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          scrollable: true,
+          title: Text('Modifica ${rows[index].$1}'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  initialValue: name,
+                  onChanged: (value) => name = value,
+                  decoration: const InputDecoration(labelText: 'Nome'),
+                  validator: (value) =>
+                      (value ?? '').trim().isEmpty ? 'Inserisci un nome' : null,
+                ),
+                TextFormField(
+                  initialValue: percentage,
+                  onChanged: (value) => percentage = value,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Percentuale',
+                    suffixText: '%',
+                  ),
+                  validator: (value) {
+                    final number = double.tryParse(
+                      (value ?? '').replaceAll(',', '.'),
+                    );
+                    return number == null ||
+                            !number.isFinite ||
+                            number < 0 ||
+                            number > 100
+                        ? 'Inserisci un valore da 0 a 100'
+                        : null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Annulla'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  Navigator.pop(dialogContext, (
+                    name.trim(),
+                    double.parse(percentage.replaceAll(',', '.')),
+                  ));
+                }
+              },
+              child: const Text('Salva'),
+            ),
+          ],
+        ),
+      );
+      if (result == null) return;
+      rows[index] = result;
+      widget.data.studioPeriods.putIfAbsent(parts[1], () => {})[field] = rows
+          .map(
+            (entry) =>
+                '${entry.$1}:${entry.$2.toStringAsFixed(1).replaceFirst(RegExp(r'\.0$'), '')}',
+          )
+          .join('\n');
+      widget.onChanged();
+      if (mounted) setState(() {});
+      return;
+    }
     final Map<String, String> values;
     final String key;
     if (parts.first == 'period' && parts.length == 3) {
@@ -222,6 +308,12 @@ class _VisualSetupScreenState extends State<VisualSetupScreen> {
       _ => key,
     };
     var edited = values[key] ?? '';
+    if (edited.isEmpty && parts.first == 'period') {
+      final defaults = analyticsRatioDefaults(key, int.tryParse(parts[1]) ?? 0);
+      if (defaults.isNotEmpty) {
+        edited = defaults.map((entry) => '${entry.$1}:${entry.$2}').join('\n');
+      }
+    }
     final result = await showDialog<String>(
       context: context,
       builder: (dialogContext) => AlertDialog(

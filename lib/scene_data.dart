@@ -68,6 +68,62 @@ class ScenePost {
 
 enum StartupMode { last, viewer, setup }
 
+List<(String, double)> analyticsRatioDefaults(String key, int range) =>
+    switch (key) {
+      'viewerGender' ||
+      'followerGender' => [('Male', 65), ('Female', 33), ('Other', 2)],
+      'viewerAge' || 'followerAge' => [
+        ('18 - 24', 36),
+        ('25 - 34', 31),
+        ('35 - 44', 17),
+        ('45 - 54', 12),
+        ('55+', 4),
+      ],
+      'viewerLocations' || 'followerLocations' when range == 3 => [
+        ('United States', 17.4),
+        ('Philippines', 14.2),
+        ('South Africa', 8.6),
+        ('Canada', 5.5),
+        ('Australia', 5.1),
+        ('United Kingdom', 4.7),
+        ('Other', 37.5),
+      ],
+      'viewerLocations' || 'followerLocations' => [
+        ('Philippines', 16.4),
+        ('South Africa', 9.8),
+        ('United States', 7),
+        ('Canada', 6.1),
+        ('Australia', 5.7),
+        ('United Kingdom', 4.7),
+        ('Other', 37.5),
+      ],
+      'traffic' => [
+        ('For You', 94.3),
+        ('Personal profile', 4.2),
+        ('Search', 1.5),
+      ],
+      _ => [],
+    };
+
+List<(String, double)> analyticsRatioRows(
+  String? input,
+  List<(String, double)> defaults,
+) {
+  final rows = <(String, double)>[];
+  for (final line in (input ?? '').split('\n')) {
+    final separator = line.lastIndexOf(':');
+    if (separator < 1) continue;
+    final label = line.substring(0, separator).trim();
+    final value = double.tryParse(
+      line.substring(separator + 1).trim().replaceAll(',', '.'),
+    );
+    if (label.isNotEmpty && value != null && value.isFinite) {
+      rows.add((label, value.clamp(0, 100).toDouble()));
+    }
+  }
+  return rows.isEmpty ? defaults : rows;
+}
+
 class SceneData {
   String name, handle, bio, avatar, followers, following, likes;
   List<ScenePost> posts;
@@ -181,7 +237,7 @@ class SceneData {
         'viewers': '1.3M',
         'newViewers': '1.1M',
         'viewerChartAxis': '426500;284300;142200',
-        'viewerChart': '0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;6200;1400;19000;5000;31000;372000;56000;117000',
+        'viewerChart': '0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;0;6200;1400;19000;5000;31000;391000;56000;97000',
       },
     },
   );

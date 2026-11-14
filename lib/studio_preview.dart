@@ -1127,9 +1127,7 @@ class _StudioPreviewState extends State<_StudioPreview> {
                     width: 72,
                     height: 48,
                     decoration: BoxDecoration(
-                    color: c.dark
-                        ? c.panelBg
-                        : const Color(0xfffaf7fa),
+                      color: c.dark ? c.panelBg : const Color(0xfffaf7fa),
                       border: Border.all(color: c.divider, width: .7),
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -1438,19 +1436,7 @@ double? _sceneDecimal(String? value) {
 List<(String, double)> _sceneRatios(
   String? input,
   List<(String, double)> defaults,
-) {
-  final rows = <(String, double)>[];
-  for (final line in (input ?? '').split('\n')) {
-    final separator = line.lastIndexOf(':');
-    if (separator < 1) continue;
-    final label = line.substring(0, separator).trim();
-    final value = _sceneDecimal(line.substring(separator + 1));
-    if (label.isNotEmpty && value != null) {
-      rows.add((label, value.clamp(0, 100).toDouble()));
-    }
-  }
-  return rows.isEmpty ? defaults : rows;
-}
+) => analyticsRatioRows(input, defaults);
 
 List<double>? _sceneSeries(String? input) {
   final values = (input ?? '')
@@ -1469,6 +1455,8 @@ Widget _studioPills(
   SimColors c,
   ValueChanged<int> onSelect, {
   bool blue = false,
+  List<double>? widths,
+  Widget? trailing,
 }) => SingleChildScrollView(
   scrollDirection: Axis.horizontal,
   child: Row(
@@ -1480,6 +1468,8 @@ Widget _studioPills(
             behavior: HitTestBehavior.opaque,
             onTap: () => onSelect(i),
             child: Container(
+              width: widths?[i],
+              alignment: Alignment.center,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(blue ? 6 : 20),
@@ -1504,6 +1494,7 @@ Widget _studioPills(
             ),
           ),
         ),
+      if (trailing != null) ...[trailing, const SizedBox(width: 20)],
     ],
   ),
 );
@@ -1622,7 +1613,36 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
           if (index != 0)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 8, 3),
-              child: _studioPills(studioPeriodLabels, range, c, selectRange),
+              child: _studioPills(
+                studioPeriodLabels,
+                range,
+                c,
+                selectRange,
+                widths: const [67, 77, 78, 86],
+                trailing: Container(
+                  width: 106,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: c.chip,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Custom',
+                        style: TextStyle(
+                          color: c.sub,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Icon(Icons.arrow_drop_down, color: c.sub, size: 16),
+                    ],
+                  ),
+                ),
+              ),
             ),
           if (loading) ...[
             for (final height in [40.0, 92.0, 88.0, 132.0])
@@ -1770,7 +1790,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
                 ],
               ),
             ),
-          const SizedBox(height: 17),
+          SizedBox(height: range == 3 && index == 3 ? 19 : 17),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 6),
             child: Row(
@@ -1780,7 +1800,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
                   child: Column(
                     children: [
                       GestureDetector(
-                        onLongPress: widget.onEdit == null
+                        onTap: widget.onEdit == null
                             ? null
                             : () async {
                                 await widget.onEdit!(
@@ -1796,6 +1816,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
                             painter: _StudioChart(
                               c,
                               lateSpike: range == 3 || index == 4,
+                              tightTail: range == 3 && index == 3,
                               axisMaximum: _sceneSeries(axis)?.first,
                               series: _sceneSeries(
                                 config[switch (index) {
@@ -1833,19 +1854,33 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
                 ),
                 if (axis != null) ...[
                   const SizedBox(width: 6),
-                  SizedBox(
-                    width: 34,
-                    height: 110,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        for (final label in axis.split(';').take(3))
-                          Text(
-                            formatViewCount(label),
-                            style: TextStyle(color: c.sub, fontSize: 11),
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.onEdit == null
+                        ? null
+                        : () => editValue(
+                            index == 3 ? 'viewerChartAxis' : 'chartAxis',
                           ),
-                      ],
+                    child: SizedBox(
+                      width: 34,
+                      height: 110,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          for (final label in axis.split(';').take(3))
+                            Transform.translate(
+                              offset: const Offset(-4, 0),
+                              child: Text(
+                                formatViewCount(label),
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.visible,
+                                style: TextStyle(color: c.sub, fontSize: 11),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -1861,90 +1896,102 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
     (String, String, String) entry,
     SimColors c,
     bool selected,
-  ) => Expanded(
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onEdit == null
-          ? null
-          : () async {
-              await widget.onEdit!('period/$range/${entry.$1}', null);
-              if (mounted) setState(() {});
-            },
-      onLongPress: widget.onEdit == null
-          ? null
-          : () async {
-              await widget.onEdit!('period/$range/${entry.$1}Delta', null);
-              if (mounted) setState(() {});
-            },
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(11, 12, 11, 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          color: selected
-              ? c.dark
-                    ? insightBlue.withValues(alpha: .12)
-                    : const Color(0xfff2faff)
-              : c.surface,
-          border: Border.all(color: selected ? insightBlue : c.divider),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              entry.$2,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: c.ink,
-                fontSize: 13,
-                height: 1.2,
-                fontWeight: FontWeight.w600,
+  ) {
+    final hasChange =
+        config.containsKey('${entry.$1}Delta') ||
+        !const {
+          'viewers',
+          'newViewers',
+          'followers',
+          'netFollowers',
+          'liveViews',
+          'liveFollowers',
+        }.contains(entry.$1);
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onEdit == null
+            ? null
+            : () async {
+                await widget.onEdit!('period/$range/${entry.$1}', null);
+                if (mounted) setState(() {});
+              },
+        onLongPress: widget.onEdit == null
+            ? null
+            : () async {
+                await widget.onEdit!('period/$range/${entry.$1}Delta', null);
+                if (mounted) setState(() {});
+              },
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(11, 12, 11, 6),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            color: selected
+                ? c.dark
+                      ? insightBlue.withValues(alpha: .12)
+                      : const Color(0xfff2faff)
+                : c.surface,
+            border: Border.all(color: selected ? insightBlue : c.divider),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                entry.$2,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: c.ink,
+                  fontSize: 13,
+                  height: 1.2,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            const SizedBox(height: 3),
-            Text(
-              const {
-                    'postViews',
-                    'profileViews',
-                    'viewers',
-                    'newViewers',
-                    'liveViews',
-                  }.contains(entry.$1)
-                  ? formatViewCount(entry.$3)
-                  : entry.$3,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: c.ink,
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+              const SizedBox(height: 3),
+              Text(
+                const {
+                      'postViews',
+                      'profileViews',
+                      'viewers',
+                      'newViewers',
+                      'liveViews',
+                    }.contains(entry.$1)
+                    ? formatViewCount(entry.$3)
+                    : entry.$3,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: c.ink,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            const SizedBox(height: 5),
-            _metricChange(
-              entry.$2,
-              entry.$3,
-              c,
-              override: config['${entry.$1}Delta'],
-              changeValue: config['${entry.$1}Change'],
-            ),
-          ],
+              const SizedBox(height: 5),
+              if (hasChange)
+                _metricChange(
+                  entry.$2,
+                  entry.$3,
+                  c,
+                  override: config['${entry.$1}Delta'],
+                  changeValue: config['${entry.$1}Change'],
+                ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
   Widget _traffic(SimColors c) => AnalyticsCard(
     colors: c,
     child: Column(
       children: [
         editableValue('traffic', _studioTitle('Traffic source', c)),
-        for (final (label, percent) in _sceneRatios(config['traffic'], [
-          ('For You', 94.3),
-          ('Personal profile', 4.2),
-          ('Search', 1.5),
-        ]))
-          _ratio(label, percent, c),
+        for (final (index, entry) in _sceneRatios(
+          config['traffic'],
+          analyticsRatioDefaults('traffic', range),
+        ).indexed)
+          _ratio(entry.$1, entry.$2, c, editField: 'traffic', editIndex: index),
       ],
     ),
   );
@@ -2054,38 +2101,26 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
 
   Widget _audience(SimColors c, String title) {
     final prefix = title.startsWith('Follower') ? 'follower' : 'viewer';
-    final gender = _sceneRatios(config['${prefix}Gender'], [
-      ('Male', 65),
-      ('Female', 33),
-      ('Other', 2),
-    ]);
-    final age = _sceneRatios(config['${prefix}Age'], [
-      ('18 - 24', 36),
-      ('25 - 34', 31),
-      ('35 - 44', 17),
-      ('45 - 54', 12),
-      ('55+', 4),
-    ]);
-    final locations = _sceneRatios(config['${prefix}Locations'], [
-      if (range == 3) ...[
-        ('United States', 17.4),
-        ('Philippines', 14.2),
-        ('South Africa', 8.6),
-        ('Canada', 5.5),
-        ('Australia', 5.1),
-      ] else ...[
-        ('Philippines', 16.4),
-        ('South Africa', 9.8),
-        ('United States', 7),
-        ('Canada', 6.1),
-        ('Australia', 5.7),
-      ],
-      ('United Kingdom', 4.7),
-      ('Other', 37.5),
-    ]);
+    final genderField = '${prefix}Gender';
+    final ageField = '${prefix}Age';
+    final locationsField = '${prefix}Locations';
+    final gender = _sceneRatios(
+      config[genderField],
+      analyticsRatioDefaults(genderField, range),
+    );
+    final age = _sceneRatios(
+      config[ageField],
+      analyticsRatioDefaults(ageField, range),
+    );
+    final locations = _sceneRatios(
+      config[locationsField],
+      analyticsRatioDefaults(locationsField, range),
+    );
     const legendColors = [insightBlue, Color(0xff82bdec), Color(0xffb8d9f2)];
     return AnalyticsCard(
       colors: c,
+      margin: const EdgeInsets.fromLTRB(8, 9, 8, 0),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2093,7 +2128,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
             '$prefix${const ['Gender', 'Age', 'Locations'][breakdown]}',
             _studioTitle(title, c, info: true),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 18),
           _studioPills(
             ['Gender', 'Age', 'Locations'],
             breakdown,
@@ -2103,62 +2138,88 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
           ),
           if (breakdown == 0) ...[
             const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 92,
-              child: CustomPaint(
-                painter: GenderPainter(
-                  gender.first.$2,
-                  gender.length > 1 ? gender[1].$2 : 0,
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onEdit == null
+                  ? null
+                  : () => editValue(genderField),
+              child: SizedBox(
+                width: double.infinity,
+                height: 92,
+                child: CustomPaint(
+                  painter: GenderPainter(
+                    gender.first.$2,
+                    gender.length > 1 ? gender[1].$2 : 0,
+                  ),
                 ),
               ),
             ),
             const SizedBox(height: 13),
             for (final (index, entry) in gender.indexed) ...[
-              SizedBox(
-                height: 40,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.circle,
-                      color: legendColors[index % legendColors.length],
-                      size: 8,
-                    ),
-                    const SizedBox(width: 11),
-                    Expanded(
-                      child: Text(
-                        entry.$1,
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: widget.onEdit == null
+                    ? null
+                    : () => editValue('ratio/$genderField/$index'),
+                child: SizedBox(
+                  height: 40,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.circle,
+                        color: legendColors[index % legendColors.length],
+                        size: 8,
+                      ),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Text(
+                          entry.$1,
+                          style: TextStyle(
+                            color: c.ink,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        _percentLabel(entry.$2),
                         style: TextStyle(
                           color: c.ink,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           fontSize: 14,
                         ),
                       ),
-                    ),
-                    Text(
-                      _percentLabel(entry.$2),
-                      style: TextStyle(
-                        color: c.ink,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
               if (index + 1 < gender.length)
                 Divider(height: 1, color: c.divider),
             ],
           ] else if (breakdown == 1)
-            for (final (label, ratio) in age) _ratio(label, ratio, c)
+            for (final (index, entry) in age.indexed)
+              _ratio(
+                entry.$1,
+                entry.$2,
+                c,
+                editField: ageField,
+                editIndex: index,
+              )
           else ...[
-            for (final (label, ratio) in locations.take(
-              showAll ? locations.length : 5,
-            ))
-              _ratio(label, ratio, c, location: true),
+            const SizedBox(height: 8),
+            for (final (index, entry)
+                in locations.take(showAll ? locations.length : 5).indexed)
+              _ratio(
+                entry.$1,
+                entry.$2,
+                c,
+                location: true,
+                editField: locationsField,
+                editIndex: index,
+              ),
             if (locations.length > 5)
               Padding(
-                padding: const EdgeInsets.only(top: 14),
+                padding: const EdgeInsets.only(top: 10),
                 child: SizedBox(
                   width: double.infinity,
                   child: TextButton(
@@ -2170,7 +2231,13 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
                       ),
                     ),
                     onPressed: () => setState(() => showAll = !showAll),
-                    child: Text(showAll ? 'See less' : 'See more'),
+                    child: Text(
+                      showAll ? 'See less' : 'See more',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -2188,49 +2255,63 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
     double value,
     SimColors c, {
     bool location = false,
-  }) => Padding(
-    padding: const EdgeInsets.only(top: 16),
-    child: Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: c.ink, fontSize: 14),
+    String? editField,
+    int? editIndex,
+  }) {
+    final row = Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: c.ink, fontSize: 14),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              _percentLabel(value),
-              style: TextStyle(
-                color: c.ink,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+              const SizedBox(width: 8),
+              Text(
+                _percentLabel(value),
+                style: TextStyle(
+                  color: c.ink,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            if (location) Icon(Icons.chevron_right, size: 14, color: c.ink),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(3),
-          child: LinearProgressIndicator(
-            value: value / 100,
-            minHeight: 10,
-            color: insightBlue,
-            backgroundColor: c.chip,
+              if (location) Icon(Icons.chevron_right, size: 14, color: c.ink),
+            ],
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: value / 100,
+              minHeight: 10,
+              color: insightBlue,
+              backgroundColor: c.chip,
+            ),
+          ),
+        ],
+      ),
+    );
+    if (widget.onEdit == null || editField == null || editIndex == null) {
+      return row;
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => editValue('ratio/$editField/$editIndex'),
+      child: row,
+    );
+  }
 
   Widget _activeTimes(SimColors c, String prefix) => AnalyticsCard(
     colors: c,
+    margin: const EdgeInsets.fromLTRB(8, 9, 8, 0),
+    padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2238,7 +2319,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
           '${prefix}Active',
           _studioTitle('Most active times', c, info: true),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 14),
         _studioPills(
           ['Hours', 'Days'],
           activityDays ? 1 : 0,
@@ -2250,13 +2331,18 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
         editableValue(
           '${prefix}Active',
           Text(
-            config['${prefix}Active'] ?? 'In the last 7 days, your viewers were most active on Thursday, between 5pm and 6pm.',
-            style: TextStyle(color: c.ink, fontSize: 13),
+            config['${prefix}Active'] ?? 'In the last 7 days, your viewers were most active on Thursday, between 5pm to 6pm.',
+            style: TextStyle(
+              color: c.ink,
+              fontSize: 14,
+              height: 1.3,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         const SizedBox(height: 12),
         GestureDetector(
-          onLongPress: widget.onEdit == null
+          onTap: widget.onEdit == null
               ? null
               : () => editValue('$prefix${activityDays ? 'Days' : 'Hours'}'),
           child: SizedBox(
@@ -2281,29 +2367,31 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
 
 class _StudioChart extends CustomPainter {
   final SimColors colors;
-  final bool lateSpike, bars;
+  final bool lateSpike, bars, tightTail;
   final List<double>? series;
   final double? axisMaximum;
   const _StudioChart(
     this.colors, {
     this.lateSpike = false,
     this.bars = false,
+    this.tightTail = false,
     this.series,
     this.axisMaximum,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    final plotWidth = size.width - (tightTail ? 4 : 0);
     final gridPaint = Paint()..color = colors.divider;
     for (var i = 0; i <= 3; i++) {
       final y = size.height * i / 3;
       if (i == 3 || bars) {
-        canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+        canvas.drawLine(Offset(0, y), Offset(plotWidth, y), gridPaint);
       } else {
-        for (var x = 0.0; x < size.width; x += 5) {
+        for (var x = 0.0; x < plotWidth; x += 5) {
           canvas.drawLine(
             Offset(x, y),
-            Offset(math.min(x + 2.5, size.width), y),
+            Offset(math.min(x + 2.5, plotWidth), y),
             gridPaint,
           );
         }
@@ -2341,14 +2429,23 @@ class _StudioChart extends CustomPainter {
                     1 - (axisMaximum == null ? .94 : 1) * value / maximum,
               )
               .toList();
+    double sampleX(int index) {
+      if (tightTail && values.length == 47) {
+        if (index < 39) return plotWidth * .88 * index / 38;
+        const tail = [.91, .925, .945, .952, .981, .989, .997, 1.0];
+        return plotWidth * tail[index - 39];
+      }
+      return plotWidth * index / (values.length - 1);
+    }
+
     final line = Path();
     for (final (index, value) in values.indexed) {
-      final x = size.width * index / (values.length - 1);
+      final x = sampleX(index);
       final y = size.height * value;
       index == 0 ? line.moveTo(x, y) : line.lineTo(x, y);
     }
     final fill = Path.from(line)
-      ..lineTo(size.width, size.height)
+      ..lineTo(plotWidth, size.height)
       ..lineTo(0, size.height)
       ..close();
     canvas.drawPath(
@@ -2369,10 +2466,7 @@ class _StudioChart extends CustomPainter {
     );
     if (samples != null && samples.length <= 12) {
       for (final (index, value) in values.indexed) {
-        final point = Offset(
-          size.width * index / (values.length - 1),
-          size.height * value,
-        );
+        final point = Offset(sampleX(index), size.height * value);
         canvas.drawCircle(point, 2.1, Paint()..color = colors.surface);
         canvas.drawCircle(
           point,
@@ -2391,6 +2485,7 @@ class _StudioChart extends CustomPainter {
       oldDelegate.colors.dark != colors.dark ||
       oldDelegate.lateSpike != lateSpike ||
       oldDelegate.bars != bars ||
+      oldDelegate.tightTail != tightTail ||
       oldDelegate.series != series ||
       oldDelegate.axisMaximum != axisMaximum;
 }
