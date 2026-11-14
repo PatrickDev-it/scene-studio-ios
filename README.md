@@ -6,11 +6,11 @@ Il setup permette di personalizzare profilo, video, miniature, contatori, commen
 
 ## Uso
 
-1. Su Windows aprire `Avvia Scene Studio.cmd` e scegliere il tema nel setup.
-2. Configurare il profilo e i post, importare video MP4/MOV e miniature, quindi impostare commenti, analitiche e contatori.
-3. Aprire **Anteprima** per ripetere la sequenza di avvio dalla Home. Tenere premuto **Profile** in basso per riaprire il setup. Dal profilo, il menu in alto a destra apre **TikTok Studio**. Lo swipe verso il basso aggiorna la griglia.
-4. In **Sequenza Home**, selezionare e trascinare i video nell’ordine di riproduzione. **Analitiche e schermate TikTok Studio** modifica il riepilogo e i dati separati per intervallo. **Badge e notifiche Inbox** controlla il numero e il fumetto.
-5. Nel singolo video, imposta le visualizzazioni da mostrare. La griglia usa numeri interi sotto 10.000 e abbrevia i valori maggiori troncando al primo decimale.
+1. Su Windows aprire `Avvia Scene Studio.cmd`. Il setup mostra il profilo con la stessa navigazione del Viewer.
+2. Toccare nome, username, foto, bio e contatori per modificarli. Tenere premuta una miniatura per impostare video locale, copertina e metriche. Aprire TikTok Studio dal menu del profilo: i valori del riepilogo, i testi del banner, le schede Monetization e le metriche nelle pagine Analytics si modificano sul posto.
+3. Il menu **Impostazioni scena** apre la sequenza Home, il badge Inbox, il tema, la scena di riferimento e **Tutte le impostazioni** per i campi avanzati, compresa la modalità all’avvio.
+4. Premere **Viewer** per ripetere l’avvio dalla Home. Tenere premuto **Profile** in basso per tornare al setup. Lo swipe verso il basso aggiorna la griglia.
+5. La griglia mostra numeri interi sotto 10.000 e abbrevia i valori maggiori troncando al primo decimale.
 
 La scena di riferimento inclusa contiene il profilo animalchaos281, nove copertine locali e i dati simulati di Studio. Nel setup puoi caricare la scena di riferimento o importare i tuoi filmati.
 
@@ -23,4 +23,3 @@ In **Modalità all’avvio** puoi riaprire l’ultima modalità usata oppure par
 - `flutter pub get`, `flutter analyze` e `flutter test` per preparare e verificare il progetto.
 - `flutter build windows --profile` per aggiornare la build avviata dal collegamento Windows.
 - Per compilare, firmare e confrontare le transizioni su iPhone 8 e X con iOS 16.7, seguire la [guida iOS](ios/INSTALLAZIONE.md).
-- Sinapsi è inizializzato nella cartella del progetto. I comandi `sinapsi start-task` e `sinapsi end-task` sono disponibili anche quando il server MCP della sessione punta a un'altra cartella.

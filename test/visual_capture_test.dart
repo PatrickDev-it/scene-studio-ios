@@ -57,6 +57,16 @@ void main() {
         for (final post in data.posts) post.cover,
         for (final name in ['edit', 'add-friend', 'menu', 'effects'])
           'assets/scene/profile-$name.png',
+        for (final name in [
+          'settings',
+          'live',
+          'service',
+          'rewards',
+          'creator',
+        ])
+          'assets/scene/studio-$name.png',
+        'assets/scene/studio-promo-shop-bg.png',
+        'assets/scene/studio-promo-artists-bg.png',
       ]) {
         await precacheImage(AssetImage(path), key.currentContext!);
       }
@@ -171,6 +181,7 @@ void main() {
     await tester.ensureVisible(find.text('Viewers'));
     await tester.tap(find.text('Viewers'));
     await tester.pumpAndSettle();
+    await shot('scene-studio-viewers-7d');
     await tester.ensureVisible(find.text('365 days'));
     await tester.tap(find.text('365 days'));
     await tester.pump();
@@ -182,5 +193,23 @@ void main() {
     await tester.dragFrom(const Offset(150, 430), const Offset(0, -480));
     await tester.pumpAndSettle();
     await shot('scene-studio-locations');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: key,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(fontFamily: 'TikTokSans'),
+          home: VisualSetupScreen(
+            data: data,
+            onChanged: () {},
+            onLoadPreset: () {},
+            onPreview: () {},
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await shot('scene-setup');
   }, skip: output == null);
 }

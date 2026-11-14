@@ -23,8 +23,8 @@ void main() {
       }
 
       await relaunch();
-      expect(find.byType(SetupScreen), findsOneWidget);
-      await tester.tap(find.text('Anteprima'));
+      expect(find.byType(VisualSetupScreen), findsOneWidget);
+      await tester.tap(find.text('Viewer'));
       await tester.pumpAndSettle();
       await relaunch();
       expect(find.byType(Simulator), findsOneWidget);
@@ -36,9 +36,9 @@ void main() {
       expect(find.text('@animalchaos281'), findsOneWidget);
       await tester.longPress(find.text('Profile'));
       await tester.pumpAndSettle();
-      expect(find.byType(SetupScreen), findsOneWidget);
+      expect(find.byType(VisualSetupScreen), findsOneWidget);
       await relaunch();
-      expect(find.byType(SetupScreen), findsOneWidget);
+      expect(find.byType(VisualSetupScreen), findsOneWidget);
 
       for (final (mode, last, viewer) in [
         (StartupMode.viewer, false, true),
@@ -49,11 +49,11 @@ void main() {
           ..lastWasViewer = last;
         await SceneStore.save(scene);
         await relaunch();
-        expect(find.byType(Simulator), viewer ? findsOneWidget : findsNothing);
         expect(
-          find.byType(SetupScreen),
+          find.byType(VisualSetupScreen),
           viewer ? findsNothing : findsOneWidget,
         );
+        expect(find.text('Viewer'), viewer ? findsNothing : findsOneWidget);
       }
     },
   );
@@ -147,13 +147,17 @@ void main() {
     await tester.pumpWidget(const SceneApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Carica scena di riferimento'));
+    await tester.tap(find.byTooltip('Impostazioni scena'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Scena di riferimento'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Annulla'));
     await tester.pumpAndSettle();
     expect((await SceneStore.load()).name, 'Campagna locale');
 
-    await tester.tap(find.text('Carica scena di riferimento'));
+    await tester.tap(find.byTooltip('Impostazioni scena'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Scena di riferimento'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Carica scena'));
     await tester.pumpAndSettle();
@@ -162,6 +166,60 @@ void main() {
     expect(restored.posts, hasLength(9));
     expect(restored.darkMode, isTrue);
   });
+
+  testWidgets('il setup visivo modifica il nome dalla schermata profilo', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(375, 667);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final scene = SceneData.demo()..startupMode = StartupMode.setup;
+    await SceneStore.save(scene);
+    await tester.pumpWidget(const SceneApp());
+    await tester.pumpAndSettle();
+    expect(find.byType(VisualSetupScreen), findsOneWidget);
+    await tester.tap(find.text('animalchaos281').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Nome del canale'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, 'Campagna locale');
+    await tester.tap(find.text('Salva'));
+    await tester.pumpAndSettle();
+    expect(find.text('Campagna locale'), findsOneWidget);
+    expect((await SceneStore.load()).name, 'Campagna locale');
+  });
+
+  testWidgets(
+    'il setup visivo modifica una metrica Studio dalla pagina stessa',
+    (tester) async {
+      tester.view.physicalSize = const Size(375, 667);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final scene = SceneData.demo()..startupMode = StartupMode.setup;
+      await SceneStore.save(scene);
+      await tester.pumpWidget(const SceneApp());
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Profile menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('TikTok Studio'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1620));
+      await tester.pump(const Duration(milliseconds: 390));
+      await tester.tap(find.text('Analytics'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1850));
+      await tester.tap(find.text('1.2M'));
+      await tester.pumpAndSettle();
+      expect(find.text('Visualizzazioni post'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).last, '2.4M');
+      await tester.tap(find.text('Salva'));
+      await tester.pumpAndSettle();
+      expect(find.text('2.4M'), findsOneWidget);
+      expect(
+        (await SceneStore.load()).studioPeriods['0']?['postViews'],
+        '2.4M',
+      );
+    },
+  );
 
   test('le visualizzazioni sono troncate senza arrotondare', () {
     const cases = {

@@ -11,3 +11,5 @@
 - SceneShareBrands contiene tre glifi del [font Font Awesome Brands 6.7.2](https://github.com/FortAwesome/Font-Awesome/tree/6.7.2). La licenza è in `assets/fonts/SceneShareBrands-LICENSE.txt`.
 
 - `assets/scene/`: avatar, copertine e dettagli grafici forniti dall’utente per la scena di riferimento. Le ultime tre copertine e il banner Studio sono ritagli delle schermate fornite.
+- `assets/scene/studio-*.png`: icone ritagliate dal video di riferimento fornito dall’utente, con sfondo reso trasparente per le modalità chiara e scura.
+- Gli sfondi `studio-promo-*-bg.png` derivano dai due riquadri Monetization dello stesso video: solo il testo variabile è stato rimosso per consentirne la modifica nel setup.

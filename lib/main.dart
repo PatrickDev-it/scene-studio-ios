@@ -98,29 +98,340 @@ class _StudioRootState extends State<StudioRoot> {
         onSetup: () => setMode(false),
       );
     }
-    return Scaffold(
-      body: Center(
-        child: Container(
-          width: 460,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            boxShadow: [BoxShadow(color: Color(0x13000000), blurRadius: 20)],
-          ),
-          child: Material(
-            color: Colors.white,
-            child: SetupScreen(
-              key: ObjectKey(scene),
-              data: scene,
-              onChanged: refresh,
-              onLoadPreset: loadPreset,
-              onPreview: () => setMode(true),
-            ),
-          ),
-        ),
-      ),
+    return VisualSetupScreen(
+      data: scene,
+      onChanged: refresh,
+      onLoadPreset: loadPreset,
+      onPreview: () => setMode(true),
     );
   }
+}
+
+class VisualSetupScreen extends StatefulWidget {
+  final SceneData data;
+  final VoidCallback onChanged, onLoadPreset, onPreview;
+  const VisualSetupScreen({
+    super.key,
+    required this.data,
+    required this.onChanged,
+    required this.onLoadPreset,
+    required this.onPreview,
+  });
+
+  @override
+  State<VisualSetupScreen> createState() => _VisualSetupScreenState();
+}
+
+class _VisualSetupScreenState extends State<VisualSetupScreen> {
+  Future<void> edit(String path, ScenePost? post) async {
+    if (post != null) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) =>
+              PostEditor(post: post, onSave: (_) => widget.onChanged()),
+        ),
+      );
+      if (mounted) setState(() {});
+      return;
+    }
+    if (path == 'profile/avatar' || path == 'studio/bannerImage') {
+      try {
+        final imported = await SceneStore.importFile(video: false);
+        if (imported != null) {
+          if (path == 'profile/avatar') {
+            widget.data.avatar = imported;
+          } else {
+            widget.data.studio['bannerImage'] = imported;
+          }
+          widget.onChanged();
+          if (mounted) setState(() {});
+        }
+      } catch (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Impossibile importare la foto: $error')),
+          );
+        }
+      }
+      return;
+    }
+    if (path == 'studio') {
+      await openPage(
+        PreviewSettingsEditor(
+          data: widget.data,
+          section: PreviewSetupSection.studio,
+          onSave: widget.onChanged,
+        ),
+      );
+      return;
+    }
+    final parts = path.split('/');
+    final Map<String, String> values;
+    final String key;
+    if (parts.first == 'period' && parts.length == 3) {
+      values = widget.data.studioPeriods.putIfAbsent(parts[1], () => {});
+      key = parts[2];
+    } else if (parts.first == 'studio' && parts.length == 2) {
+      values = widget.data.studio;
+      key = parts[1];
+    } else if (parts.first == 'profile' && parts.length == 2) {
+      key = parts[1];
+      values = {
+        'name': widget.data.name,
+        'handle': widget.data.handle,
+        'bio': widget.data.bio,
+        'following': widget.data.following,
+        'followers': widget.data.followers,
+        'likes': widget.data.likes,
+      };
+    } else {
+      return;
+    }
+    final label = switch (key) {
+      'name' => 'Nome del canale',
+      'handle' => 'Nome utente',
+      'bio' => 'Bio',
+      'following' => 'Seguiti',
+      'followers' => 'Follower',
+      'likes' => 'Mi piace',
+      'date' => 'Date delle analitiche',
+      'viewers' => 'Spettatori totali',
+      'newViewers' => 'Nuovi spettatori',
+      'postViews' => 'Visualizzazioni post',
+      'profileViews' => 'Visite al profilo',
+      'summaryViews' => 'Visualizzazioni post · Studio',
+      'summaryFollowers' => 'Follower netti · Studio',
+      'summaryLikes' => 'Mi piace · Studio',
+      'summaryViewsDelta' => 'Variazione visualizzazioni (%)',
+      'summaryFollowersDelta' => 'Variazione follower (%)',
+      'summaryLikesDelta' => 'Variazione mi piace (%)',
+      'bannerTitle' => 'Titolo del banner',
+      'bannerText' => 'Testo del banner',
+      'promo1Title' || 'promo2Title' => 'Titolo della scheda',
+      'promo1Text' || 'promo2Text' => 'Descrizione della scheda',
+      'viewerGender' ||
+      'followerGender' => 'Genere · Nome:percentuale per riga',
+      'viewerAge' || 'followerAge' => 'Età · Fascia:percentuale per riga',
+      'viewerLocations' ||
+      'followerLocations' => 'Località · Paese:percentuale per riga',
+      'viewerActive' || 'followerActive' => 'Orari di attività · testo',
+      'viewerHours' || 'followerHours' => 'Valori orari separati da ;',
+      'viewerDays' || 'followerDays' => 'Valori giornalieri separati da ;',
+      'traffic' => 'Sorgenti traffico · Nome:percentuale per riga',
+      'chart' || 'viewerChart' => 'Punti del grafico separati da ;',
+      _ => key,
+    };
+    var edited = values[key] ?? '';
+    final result = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(label),
+        content: TextFormField(
+          initialValue: edited,
+          onChanged: (value) => edited = value,
+          autofocus: true,
+          maxLines:
+              const {
+                'bio',
+                'bannerTitle',
+                'bannerText',
+                'promo1Title',
+                'promo1Text',
+                'promo2Title',
+                'promo2Text',
+                'viewerGender',
+                'viewerAge',
+                'viewerLocations',
+                'followerGender',
+                'followerAge',
+                'followerLocations',
+                'viewerActive',
+                'followerActive',
+                'traffic',
+              }.contains(key)
+              ? 4
+              : 1,
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, edited.trim()),
+            child: const Text('Salva'),
+          ),
+        ],
+      ),
+    );
+    if (result == null) return;
+    if (parts.first == 'profile') {
+      switch (key) {
+        case 'name':
+          widget.data.name = result;
+        case 'handle':
+          widget.data.handle = result.replaceFirst(RegExp(r'^@'), '');
+        case 'bio':
+          widget.data.bio = result;
+        case 'following':
+          widget.data.following = result;
+        case 'followers':
+          widget.data.followers = result;
+        case 'likes':
+          widget.data.likes = result;
+      }
+    } else if (result.isEmpty) {
+      values.remove(key);
+    } else {
+      values[key] = result;
+    }
+    widget.onChanged();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> openPage(Widget page) async {
+    await Navigator.of(context)
+        .push<void>(MaterialPageRoute(builder: (_) => page));
+    if (mounted) setState(() {});
+  }
+
+  Future<void> openPreset() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Caricare la scena di riferimento?'),
+        content: const Text(
+          'Sostituisce il profilo, i video e le analitiche attuali.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annulla'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Carica scena'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) widget.onLoadPreset();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: Center(
+      child: SizedBox(
+        width: 460,
+        child: Column(
+          children: [
+            SafeArea(
+              bottom: false,
+              child: SizedBox(
+                height: 50,
+                child: Row(
+                  children: [
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Text(
+                        'Setup · tocca un valore, tieni premuto un video',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    PopupMenuButton<String>(
+                      tooltip: 'Impostazioni scena',
+                      onSelected: (action) {
+                        switch (action) {
+                          case 'advanced':
+                            openPage(
+                              SetupScreen(
+                                data: widget.data,
+                                onChanged: widget.onChanged,
+                                onLoadPreset: () {
+                                  Navigator.pop(context);
+                                  widget.onLoadPreset();
+                                },
+                                onPreview: () {
+                                  Navigator.pop(context);
+                                  widget.onPreview();
+                                },
+                              ),
+                            );
+                          case 'preset':
+                            openPreset();
+                          case 'home':
+                            openPage(
+                              HomeSequenceEditor(
+                                data: widget.data,
+                                onSave: widget.onChanged,
+                              ),
+                            );
+                          case 'studio':
+                            edit('studio', null);
+                          case 'inbox':
+                            openPage(
+                              PreviewSettingsEditor(
+                                data: widget.data,
+                                section: PreviewSetupSection.inbox,
+                                onSave: widget.onChanged,
+                              ),
+                            );
+                          case 'theme':
+                            widget.data.darkMode = !widget.data.darkMode;
+                            widget.onChanged();
+                            setState(() {});
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                        PopupMenuItem(
+                          value: 'advanced',
+                          child: Text('Tutte le impostazioni'),
+                        ),
+                        PopupMenuItem(
+                          value: 'home',
+                          child: Text('Sequenza Home'),
+                        ),
+                        PopupMenuItem(
+                          value: 'studio',
+                          child: Text('Dati TikTok Studio'),
+                        ),
+                        PopupMenuItem(
+                          value: 'inbox',
+                          child: Text('Notifiche Inbox'),
+                        ),
+                        PopupMenuItem(
+                          value: 'theme',
+                          child: Text('Cambia tema'),
+                        ),
+                        PopupMenuItem(
+                          value: 'preset',
+                          child: Text('Scena di riferimento'),
+                        ),
+                      ],
+                    ),
+                    TextButton(
+                      onPressed: widget.onPreview,
+                      child: const Text('Viewer'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: MediaQuery.removePadding(
+                context: context,
+                removeTop: true,
+                child: Simulator(data: widget.data, onEdit: edit),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class SetupScreen extends StatefulWidget {

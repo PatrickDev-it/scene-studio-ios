@@ -49,22 +49,24 @@ class SimColors {
   final bool dark;
   const SimColors(this.dark);
   Color get bg => dark ? const Color(0xff121212) : Colors.white;
-  Color get surface => dark ? const Color(0xff252525) : Colors.white;
-  Color get panelBg => dark ? const Color(0xff161616) : const Color(0xfff5f5f5);
+  Color get surface => dark ? const Color(0xff252525) : const Color(0xfffffdff);
+  Color get panelBg => dark ? const Color(0xff161616) : const Color(0xfff7f4f7);
   Color get ink => dark ? Colors.white : Colors.black;
   Color get sub => dark ? const Color(0xffaaaab0) : const Color(0xff737373);
-  Color get divider => dark ? const Color(0xff3a3a3a) : const Color(0xffe9e9e9);
-  Color get chip => dark ? const Color(0xff333333) : const Color(0xfff1f1f1);
+  Color get divider => dark ? const Color(0xff3a3a3a) : const Color(0xffe7e4e7);
+  Color get chip => dark ? const Color(0xff333333) : const Color(0xffebe8eb);
 }
 
 class Simulator extends StatefulWidget {
   final SceneData data;
   final VoidCallback? onSetup;
+  final Future<void> Function(String, ScenePost?)? onEdit;
   final bool startInFeed;
   const Simulator({
     super.key,
     required this.data,
     this.onSetup,
+    this.onEdit,
     this.startInFeed = false,
   });
   @override
@@ -137,7 +139,9 @@ class _SimulatorState extends State<Simulator> {
   }
 
   void openStudio() => Navigator.of(context).push<void>(
-    CupertinoPageRoute(builder: (_) => _StudioPreview(data: widget.data)),
+    CupertinoPageRoute(
+      builder: (_) => _StudioPreview(data: widget.data, onEdit: widget.onEdit),
+    ),
   );
 
   void openPost(int index) {
@@ -198,6 +202,7 @@ class _SimulatorState extends State<Simulator> {
                                 animateEntry: !profileVisited,
                                 onShown: () => profileVisited = true,
                                 onMenu: () => openProfileMenu(c),
+                                onEdit: widget.onEdit,
                               )
                             : tab == 3
                             ? _InboxPreview(colors: c, data: widget.data)
@@ -585,6 +590,7 @@ class ProfileView extends StatefulWidget {
   final ValueChanged<int> onOpen;
   final VoidCallback onMenu, onShown;
   final bool animateEntry;
+  final Future<void> Function(String, ScenePost?)? onEdit;
   const ProfileView({
     super.key,
     required this.data,
@@ -592,9 +598,53 @@ class ProfileView extends StatefulWidget {
     required this.onMenu,
     required this.onShown,
     required this.animateEntry,
+    this.onEdit,
   });
   @override
   State<ProfileView> createState() => _ProfileViewState();
+}
+
+class _NoKeyholeLock extends StatelessWidget {
+  final Color color;
+  const _NoKeyholeLock({required this.color});
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    size: const Size(23, 23),
+    painter: _NoKeyholeLockPainter(color),
+  );
+}
+
+class _NoKeyholeLockPainter extends CustomPainter {
+  final Color color;
+  const _NoKeyholeLockPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final shackle = Path()
+      ..moveTo(6.9, 10.3)
+      ..lineTo(6.9, 7.1)
+      ..cubicTo(6.9, .7, 16.1, .7, 16.1, 7.1)
+      ..lineTo(16.1, 10.3);
+    canvas.drawPath(shackle, stroke);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(4.4, 9.8, 14.2, 11.4),
+        const Radius.circular(1.8),
+      ),
+      stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_NoKeyholeLockPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 class _ProfileViewState extends State<ProfileView> {
@@ -603,6 +653,17 @@ class _ProfileViewState extends State<ProfileView> {
   final tileKeys = <String, GlobalKey>{};
   final _tabsKey = GlobalKey();
   late bool coversReady = !widget.animateEntry;
+
+  Widget editable(String key, Widget child) => widget.onEdit == null
+      ? child
+      : GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () async {
+            await widget.onEdit!(key, null);
+            if (mounted) setState(() {});
+          },
+          child: child,
+        );
 
   @override
   void initState() {
@@ -700,15 +761,18 @@ class _ProfileViewState extends State<ProfileView> {
                             Row(
                               children: [
                                 Flexible(
-                                  child: Text(
-                                    d.name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: c.ink,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 28,
-                                      letterSpacing: -.7,
+                                  child: editable(
+                                    'profile/name',
+                                    Text(
+                                      d.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: c.ink,
+                                        fontWeight: FontWeight.w800,
+                                        fontSize: 25,
+                                        letterSpacing: -.6,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -717,24 +781,38 @@ class _ProfileViewState extends State<ProfileView> {
                               ],
                             ),
                             const SizedBox(height: 3),
-                            Text(
-                              '@${d.handle}',
-                              style: TextStyle(
-                                color: c.sub,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                            editable(
+                              'profile/handle',
+                              Text(
+                                '@${d.handle}',
+                                style: TextStyle(
+                                  color: c.sub,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 13),
                             Row(
                               children: [
                                 Expanded(
-                                  child: stat(d.following, 'Following', c),
+                                  child: editable(
+                                    'profile/following',
+                                    stat(d.following, 'Following', c),
+                                  ),
                                 ),
                                 Expanded(
-                                  child: stat(d.followers, 'Followers', c),
+                                  child: editable(
+                                    'profile/followers',
+                                    stat(d.followers, 'Followers', c),
+                                  ),
                                 ),
-                                Expanded(child: stat(d.likes, 'Likes', c)),
+                                Expanded(
+                                  child: editable(
+                                    'profile/likes',
+                                    stat(d.likes, 'Likes', c),
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -745,7 +823,10 @@ class _ProfileViewState extends State<ProfileView> {
                         children: [
                           Padding(
                             padding: const EdgeInsets.only(top: 13),
-                            child: Avatar(path: d.avatar, radius: 47),
+                            child: editable(
+                              'profile/avatar',
+                              Avatar(path: d.avatar, radius: 47),
+                            ),
                           ),
                           Positioned(
                             top: -1,
@@ -778,19 +859,34 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: Text(
-                    d.bio,
-                    style: TextStyle(color: c.ink, fontSize: 14, height: 1.3),
+                  child: editable(
+                    'profile/bio',
+                    Text(
+                      d.bio,
+                      style: TextStyle(color: c.ink, fontSize: 14, height: 1.3),
+                    ),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(26, 11, 16, 8),
-                  child: Text(
-                    '+ Add college',
-                    style: TextStyle(
-                      color: c.ink,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+                  padding: const EdgeInsets.fromLTRB(16, 11, 16, 8),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: c.dark ? c.chip : const Color(0xfff1f1f1),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 5,
+                      ),
+                      child: Text(
+                        '+ Add college',
+                        style: TextStyle(
+                          color: c.ink,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -812,6 +908,12 @@ class _ProfileViewState extends State<ProfileView> {
                 return InkWell(
                   key: tileKeys.putIfAbsent(p.id, GlobalKey.new),
                   onTap: () => widget.onOpen(i),
+                  onLongPress: widget.onEdit == null
+                      ? null
+                      : () async {
+                          await widget.onEdit!('post', p);
+                          if (mounted) setState(() {});
+                        },
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
@@ -965,7 +1067,7 @@ class _ProfileViewState extends State<ProfileView> {
             final icons = [
               Icons.grid_on,
               Icons.face_retouching_natural,
-              Icons.lock_outline,
+              null,
               Icons.bookmark_border,
               Icons.favorite_border,
             ];
@@ -983,9 +1085,11 @@ class _ProfileViewState extends State<ProfileView> {
                       )
                     else if (i == 1)
                       profileIcon('effects', section == i ? c.ink : c.sub)
+                    else if (i == 2)
+                      _NoKeyholeLock(color: section == i ? c.ink : c.sub)
                     else
                       Icon(
-                        icons[i],
+                        icons[i]!,
                         size: 23,
                         color: section == i ? c.ink : c.sub,
                       ),
@@ -3376,19 +3480,23 @@ class AnalyticsCard extends StatelessWidget {
   final SimColors colors;
   final Widget child;
   final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+  final double radius;
   const AnalyticsCard({
     super.key,
     required this.colors,
     required this.child,
     this.padding,
+    this.margin,
+    this.radius = 9,
   });
   @override
   Widget build(BuildContext context) => Container(
-    margin: const EdgeInsets.fromLTRB(9, 9, 9, 0),
+    margin: margin ?? const EdgeInsets.fromLTRB(9, 9, 9, 0),
     padding: padding ?? const EdgeInsets.all(18),
     decoration: BoxDecoration(
       color: colors.surface,
-      borderRadius: BorderRadius.circular(9),
+      borderRadius: BorderRadius.circular(radius),
     ),
     child: child,
   );

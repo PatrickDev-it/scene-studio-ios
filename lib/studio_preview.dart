@@ -500,7 +500,14 @@ class _StudioHeader extends StatelessWidget {
             child: IconButton(
               tooltip: 'Settings',
               onPressed: settings,
-              icon: Icon(Icons.settings_outlined, size: 25, color: colors.ink),
+              icon: Transform.translate(
+                offset: const Offset(-3, 0),
+                child: ImageIcon(
+                  const AssetImage('assets/scene/studio-settings.png'),
+                  size: 27,
+                  color: colors.ink,
+                ),
+              ),
             ),
           ),
       ],
@@ -531,7 +538,8 @@ Widget _studioFrame(BuildContext context, SimColors colors, Widget child) =>
 
 class _StudioPreview extends StatefulWidget {
   final SceneData data;
-  const _StudioPreview({required this.data});
+  final Future<void> Function(String, ScenePost?)? onEdit;
+  const _StudioPreview({required this.data, this.onEdit});
 
   @override
   State<_StudioPreview> createState() => _StudioPreviewState();
@@ -540,6 +548,11 @@ class _StudioPreview extends StatefulWidget {
 class _StudioPreviewState extends State<_StudioPreview> {
   int stage = 0;
   bool secondaryReady = false, secondaryRequested = false;
+
+  Future<void> editField(String key) async {
+    await widget.onEdit?.call('studio/$key', null);
+    if (mounted) setState(() {});
+  }
 
   @override
   void initState() {
@@ -557,7 +570,10 @@ class _StudioPreviewState extends State<_StudioPreview> {
 
   void openAnalytics() => Navigator.push<void>(
     context,
-    CupertinoPageRoute(builder: (_) => _StudioAnalytics(data: widget.data)),
+    CupertinoPageRoute(
+      builder: (_) =>
+          _StudioAnalytics(data: widget.data, onEdit: widget.onEdit),
+    ),
   );
 
   Future<void> refresh() async {
@@ -607,28 +623,39 @@ class _StudioPreviewState extends State<_StudioPreview> {
                 );
               },
             ),
-            TabBar(
-              labelStyle: const TextStyle(
-                fontFamily: 'TikTokSans',
-                fontSize: 15,
-                height: 1.15,
-                fontWeight: FontWeight.w700,
+            LayoutBuilder(
+              builder: (context, constraints) => TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                labelPadding: EdgeInsets.zero,
+                labelStyle: const TextStyle(
+                  fontFamily: 'TikTokSans',
+                  fontSize: 15,
+                  height: 1.15,
+                  fontWeight: FontWeight.w700,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontFamily: 'TikTokSans',
+                  fontSize: 15,
+                  height: 1.15,
+                  fontWeight: FontWeight.w500,
+                ),
+                labelColor: c.ink,
+                unselectedLabelColor: c.sub,
+                indicatorColor: c.ink,
+                indicatorSize: TabBarIndicatorSize.tab,
+                indicatorPadding: const EdgeInsets.symmetric(horizontal: 8),
+                tabs: [
+                  SizedBox(
+                    width: constraints.maxWidth * 200 / 375,
+                    child: const Tab(height: 39, text: 'Posts'),
+                  ),
+                  SizedBox(
+                    width: constraints.maxWidth * 165 / 375,
+                    child: const Tab(height: 39, text: 'LIVE'),
+                  ),
+                ],
               ),
-              unselectedLabelStyle: const TextStyle(
-                fontFamily: 'TikTokSans',
-                fontSize: 15,
-                height: 1.15,
-                fontWeight: FontWeight.w500,
-              ),
-              labelColor: c.ink,
-              unselectedLabelColor: c.sub,
-              indicatorColor: c.ink,
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicatorPadding: const EdgeInsets.symmetric(horizontal: 8),
-              tabs: const [
-                Tab(height: 39, text: 'Posts'),
-                Tab(height: 39, text: 'LIVE'),
-              ],
             ),
             Expanded(
               child: TabBarView(
@@ -675,14 +702,30 @@ class _StudioPreviewState extends State<_StudioPreview> {
                                     children: [
                                       AnalyticsCard(
                                         colors: c,
+                                        margin: const EdgeInsets.fromLTRB(
+                                          12,
+                                          12,
+                                          12,
+                                          0,
+                                        ),
+                                        radius: 15,
                                         padding: const EdgeInsets.fromLTRB(
                                           16,
-                                          18,
+                                          15,
                                           16,
-                                          21,
+                                          15,
                                         ),
                                         child: InkWell(
                                           onTap: openAnalytics,
+                                          onLongPress: widget.onEdit == null
+                                              ? null
+                                              : () async {
+                                                  await widget.onEdit!(
+                                                    'studio',
+                                                    null,
+                                                  );
+                                                  if (mounted) setState(() {});
+                                                },
                                           child: Column(
                                             children: [
                                               _studioTitle(
@@ -707,6 +750,17 @@ class _StudioPreviewState extends State<_StudioPreview> {
                                                     delta: widget
                                                         .data
                                                         .studio['summaryViewsDelta'],
+                                                    onTap: widget.onEdit == null
+                                                        ? null
+                                                        : () => editField(
+                                                            'summaryViews',
+                                                          ),
+                                                    onLongPress:
+                                                        widget.onEdit == null
+                                                        ? null
+                                                        : () => editField(
+                                                            'summaryViewsDelta',
+                                                          ),
                                                   ),
                                                   _studioNumber(
                                                     'Net followers',
@@ -718,6 +772,17 @@ class _StudioPreviewState extends State<_StudioPreview> {
                                                     delta: widget
                                                         .data
                                                         .studio['summaryFollowersDelta'],
+                                                    onTap: widget.onEdit == null
+                                                        ? null
+                                                        : () => editField(
+                                                            'summaryFollowers',
+                                                          ),
+                                                    onLongPress:
+                                                        widget.onEdit == null
+                                                        ? null
+                                                        : () => editField(
+                                                            'summaryFollowersDelta',
+                                                          ),
                                                   ),
                                                   _studioNumber(
                                                     'Likes',
@@ -733,6 +798,17 @@ class _StudioPreviewState extends State<_StudioPreview> {
                                                     delta: widget
                                                         .data
                                                         .studio['summaryLikesDelta'],
+                                                    onTap: widget.onEdit == null
+                                                        ? null
+                                                        : () => editField(
+                                                            'summaryLikes',
+                                                          ),
+                                                    onLongPress:
+                                                        widget.onEdit == null
+                                                        ? null
+                                                        : () => editField(
+                                                            'summaryLikesDelta',
+                                                          ),
                                                   ),
                                                 ],
                                               ),
@@ -742,80 +818,123 @@ class _StudioPreviewState extends State<_StudioPreview> {
                                       ),
                                       AnalyticsCard(
                                         colors: c,
+                                        margin: const EdgeInsets.fromLTRB(
+                                          12,
+                                          9,
+                                          12,
+                                          0,
+                                        ),
+                                        radius: 15,
                                         padding: const EdgeInsets.fromLTRB(
                                           11,
                                           8,
                                           11,
                                           8,
                                         ),
-                                        child: Row(
+                                        child: Stack(
                                           children: [
-                                            _StudioBannerArtwork(
-                                              path:
-                                                  widget
-                                                      .data
-                                                      .studio['bannerImage'] ??
-                                                  '',
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    widget
+                                            Row(
+                                              children: [
+                                                GestureDetector(
+                                                  onTap: widget.onEdit == null
+                                                      ? null
+                                                      : () => editField(
+                                                          'bannerImage',
+                                                        ),
+                                                  child: _StudioBannerArtwork(
+                                                    path:
+                                                        widget
                                                             .data
-                                                            .studio['bannerTitle'] ??
-                                                        '#DailyLife Post Contest',
-                                                    maxLines: 2,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w500,
+                                                            .studio['bannerImage'] ??
+                                                        '',
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 10),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      GestureDetector(
+                                                        onTap:
+                                                            widget.onEdit ==
+                                                                null
+                                                            ? null
+                                                            : () => editField(
+                                                                'bannerTitle',
+                                                              ),
+                                                        child: Text(
+                                                          widget
+                                                                  .data
+                                                                  .studio['bannerTitle'] ??
+                                                              '#DailyLife Post Contest',
+                                                          maxLines: 2,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: TextStyle(
+                                                            fontSize: 14,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                            color: c.ink,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 7),
+                                                      GestureDetector(
+                                                        onTap:
+                                                            widget.onEdit ==
+                                                                null
+                                                            ? null
+                                                            : () => editField(
+                                                                'bannerText',
+                                                              ),
+                                                        child: Text(
+                                                          widget
+                                                                  .data
+                                                                  .studio['bannerText'] ??
+                                                              r'Win up to $2,000 in rewards',
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style: TextStyle(
+                                                            fontSize: 14,
+                                                            color: hotPink,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            Positioned(
+                                              right: 2,
+                                              bottom: 1,
+                                              child: Row(
+                                                children: [
+                                                  Container(
+                                                    width: 10,
+                                                    height: 4,
+                                                    decoration: BoxDecoration(
                                                       color: c.ink,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            3,
+                                                          ),
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 7),
-                                                  Text(
-                                                    widget
-                                                            .data
-                                                            .studio['bannerText'] ??
-                                                        r'Win up to $2,000 in rewards',
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      color: hotPink,
+                                                  const SizedBox(width: 4),
+                                                  Container(
+                                                    width: 4,
+                                                    height: 4,
+                                                    decoration: BoxDecoration(
+                                                      color: c.divider,
+                                                      shape: BoxShape.circle,
                                                     ),
                                                   ),
                                                 ],
                                               ),
-                                            ),
-                                            Row(
-                                              children: [
-                                                for (var i = 0; i < 2; i++)
-                                                  Container(
-                                                    width: i == 0 ? 9 : 3,
-                                                    height: 3,
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                          left: 3,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: i == 0
-                                                          ? c.ink
-                                                          : c.divider,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            2,
-                                                          ),
-                                                    ),
-                                                  ),
-                                              ],
                                             ),
                                           ],
                                         ),
@@ -910,65 +1029,115 @@ class _StudioPreviewState extends State<_StudioPreview> {
 
   Widget _monetization(SimColors c) => AnalyticsCard(
     colors: c,
-    padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+    margin: const EdgeInsets.fromLTRB(12, 9, 12, 0),
+    radius: 15,
+    padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
     child: Column(
       children: [
         _studioTitle('Monetization', c, arrow: true),
-        const SizedBox(height: 14),
+        const SizedBox(height: 17),
         Row(
           children: [
             _promo(
               widget.data.studio['promo1Title'] ?? 'TikTok Shop for Creators',
               widget.data.studio['promo1Text'] ??
                   'Get paid to share products you love.',
-              Icons.shopping_bag_outlined,
-              const Color(0xffead0a9),
+              'studio-promo-shop-bg',
+              'promo1Title',
+              'promo1Text',
             ),
             const SizedBox(width: 8),
             _promo(
               widget.data.studio['promo2Title'] ?? 'Work with Artists',
               widget.data.studio['promo2Text'] ??
                   'Create posts with featured sounds.',
-              Icons.music_note,
-              const Color(0xffff6294),
+              'studio-promo-artists-bg',
+              'promo2Title',
+              'promo2Text',
             ),
           ],
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            for (final (icon, text) in [
-              (Icons.videocam_outlined, 'LIVE Incentive Program'),
-              (Icons.chat_outlined, 'Service+'),
-              (Icons.card_giftcard, 'LIVE rewards'),
-              (Icons.shopping_bag_outlined, 'Creator Marketplace'),
-            ])
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 42,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: c.panelBg,
-                          borderRadius: BorderRadius.circular(9),
-                        ),
-                        child: Icon(icon, color: c.ink, size: 21),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 84,
+          child: OverflowBox(
+            alignment: Alignment.centerLeft,
+            minWidth:
+                math.min(
+                  MediaQuery.sizeOf(context).width,
+                  _desktopPreviewWidth ?? double.infinity,
+                ) -
+                28,
+            maxWidth:
+                math.min(
+                  MediaQuery.sizeOf(context).width,
+                  _desktopPreviewWidth ?? double.infinity,
+                ) -
+                28,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final (icon, text, dx, dy) in [
+                    ('studio-live', 'LIVE Incentive Program', -1.0, -1.0),
+                    ('studio-service', 'Service+', 0.0, -2.0),
+                    ('studio-rewards', 'LIVE rewards', 2.0, -2.0),
+                    ('studio-creator', 'Creator Marketplace', 1.0, -2.0),
+                  ]) ...[
+                    SizedBox(
+                      width: 72,
+                      child: Column(
+                        children: [
+                          Container(
+                            height: 48,
+                            width: 72,
+                            decoration: BoxDecoration(
+                              color: c.dark
+                                  ? c.panelBg
+                                  : const Color(0xfffaf7fa),
+                              border: Border.all(color: c.divider, width: .7),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Transform.translate(
+                                offset: Offset(dx, dy),
+                                child: ImageIcon(
+                                  AssetImage('assets/scene/$icon.png'),
+                                  color: c.ink,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            text,
+                            maxLines: 2,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: c.ink, fontSize: 10),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        text,
-                        maxLines: 3,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: c.ink, fontSize: 10),
-                      ),
-                    ],
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Container(
+                    width: 72,
+                    height: 48,
+                    decoration: BoxDecoration(
+                    color: c.dark
+                        ? c.panelBg
+                        : const Color(0xfffaf7fa),
+                      border: Border.all(color: c.divider, width: .7),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                ),
+                ],
               ),
-          ],
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         Container(
@@ -992,59 +1161,59 @@ class _StudioPreviewState extends State<_StudioPreview> {
     ),
   );
 
-  Widget _promo(String title, String details, IconData icon, Color color) =>
-      Expanded(
-        child: Container(
-          height: 178,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color.lerp(color, Colors.white, .22)!, color],
-            ),
-          ),
-          child: DefaultTextStyle(
-            style: const TextStyle(
-              fontFamily: 'TikTokSans',
-              color: Colors.black,
-              fontSize: 12,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icon, color: Colors.black, size: 21),
-                const SizedBox(height: 4),
-                Text(
-                  title,
-                  maxLines: 2,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(details, maxLines: 2, overflow: TextOverflow.ellipsis),
-                const Spacer(),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                  ),
-                  child: const Text(
-                    'Join',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-              ],
-            ),
-          ),
+  Widget _promo(
+    String title,
+    String details,
+    String background,
+    String titleKey,
+    String detailsKey,
+  ) => Expanded(
+    child: Container(
+      height: 178,
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        image: DecorationImage(
+          image: AssetImage('assets/scene/$background.png'),
+          fit: BoxFit.fill,
         ),
-      );
+      ),
+      child: DefaultTextStyle(
+        style: const TextStyle(
+          fontFamily: 'TikTokSans',
+          color: Colors.black,
+          fontSize: 14,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 29),
+            GestureDetector(
+              onTap: widget.onEdit == null ? null : () => editField(titleKey),
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            const SizedBox(height: 5),
+            GestureDetector(
+              onTap: widget.onEdit == null ? null : () => editField(detailsKey),
+              child: Text(
+                details,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _StudioBannerArtwork extends StatelessWidget {
@@ -1121,34 +1290,41 @@ Widget _studioNumber(
   String value,
   SimColors c, {
   String? delta,
+  VoidCallback? onTap,
+  VoidCallback? onLongPress,
 }) => Expanded(
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: c.ink,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
+  child: GestureDetector(
+    behavior: HitTestBehavior.opaque,
+    onTap: onTap,
+    onLongPress: onLongPress,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: c.ink,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
-      const SizedBox(height: 3),
-      Text(
-        label == 'Post views' ? formatViewCount(value) : value,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: c.ink,
-          fontSize: 22,
-          fontWeight: FontWeight.w800,
+        const SizedBox(height: 3),
+        Text(
+          label == 'Post views' ? formatViewCount(value) : value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: c.ink,
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
         ),
-      ),
-      const SizedBox(height: 6),
-      _metricChange(label, value, c, override: delta, summary: true),
-    ],
+        const SizedBox(height: 6),
+        _metricChange(label, value, c, override: delta, summary: true),
+      ],
+    ),
   ),
 );
 
@@ -1191,13 +1367,22 @@ Widget _metricChange(
       children: [
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
-          child: Icon(
-            summary
-                ? (down ? Icons.arrow_drop_down : Icons.arrow_drop_up)
-                : (down ? Icons.arrow_circle_down : Icons.arrow_circle_up),
-            size: 14,
-            color: colors.dark ? const Color(0xff85c9fc) : insightBlue,
-          ),
+          child: summary
+              ? Transform.translate(
+                  offset: const Offset(0, -2),
+                  child: CustomPaint(
+                    size: const Size(10, 7),
+                    painter: _StudioDeltaTriangle(
+                      colors.dark ? const Color(0xff85c9fc) : insightBlue,
+                      down,
+                    ),
+                  ),
+                )
+              : Icon(
+                  down ? Icons.arrow_circle_down : Icons.arrow_circle_up,
+                  size: 15,
+                  color: colors.dark ? const Color(0xff85c9fc) : insightBlue,
+                ),
         ),
         TextSpan(
           text: summary
@@ -1219,6 +1404,26 @@ Widget _metricChange(
       height: 1.3,
     ),
   );
+}
+
+class _StudioDeltaTriangle extends CustomPainter {
+  final Color color;
+  final bool down;
+  const _StudioDeltaTriangle(this.color, this.down);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(1, down ? 1 : 6)
+      ..lineTo(8, down ? 1 : 6)
+      ..lineTo(4.5, down ? 6 : 1)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(_StudioDeltaTriangle oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.down != down;
 }
 
 double? _sceneDecimal(String? value) {
@@ -1275,7 +1480,7 @@ Widget _studioPills(
             behavior: HitTestBehavior.opaque,
             onTap: () => onSelect(i),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(blue ? 6 : 20),
                 color: i != selected
@@ -1305,7 +1510,8 @@ Widget _studioPills(
 
 class _StudioAnalytics extends StatefulWidget {
   final SceneData data;
-  const _StudioAnalytics({required this.data});
+  final Future<void> Function(String, ScenePost?)? onEdit;
+  const _StudioAnalytics({required this.data, this.onEdit});
 
   @override
   State<_StudioAnalytics> createState() => _StudioAnalyticsState();
@@ -1322,6 +1528,19 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
   ];
   var range = 0, inspiration = 0, ranking = 0, breakdown = 0, request = 0;
   bool loading = true, showAll = false, activityDays = false;
+
+  Future<void> editValue(String key) async {
+    await widget.onEdit?.call('period/$range/$key', null);
+    if (mounted) setState(() {});
+  }
+
+  Widget editableValue(String key, Widget child) => widget.onEdit == null
+      ? child
+      : GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => editValue(key),
+          child: child,
+        );
 
   Map<String, String> get config =>
       widget.data.studioPeriods[range.toString()] ?? const {};
@@ -1361,7 +1580,9 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
             TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.only(left: 16),
+              labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+              indicatorSize: TabBarIndicatorSize.tab,
               labelStyle: const TextStyle(
                 fontFamily: 'TikTokSans',
                 fontSize: 15,
@@ -1375,7 +1596,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
               labelColor: c.ink,
               unselectedLabelColor: c.sub,
               indicatorColor: c.ink,
-              tabs: [for (final label in tabs) Tab(height: 41, text: label)],
+              tabs: [for (final label in tabs) Tab(height: 39, text: label)],
             ),
             Expanded(
               child: TabBarView(
@@ -1515,21 +1736,29 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
         children: [
           _studioTitle('Key metrics', c, info: true),
           const SizedBox(height: 4),
-          Text(
-            config['date'] ??
-                const [
-                  'Nov 6 – Nov 12',
-                  'Oct 16 – Nov 12',
-                  'Sep 14 – Nov 12',
-                  'Nov 13, 2025 – Nov 12, 2026',
-                ][range],
-            style: TextStyle(
-              color: c.sub,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
+          GestureDetector(
+            onTap: widget.onEdit == null
+                ? null
+                : () async {
+                    await widget.onEdit!('period/$range/date', null);
+                    if (mounted) setState(() {});
+                  },
+            child: Text(
+              config['date'] ??
+                  const [
+                    'Nov 6 – Nov 12',
+                    'Oct 16 – Nov 12',
+                    'Sep 14 – Nov 12',
+                    'Nov 13, 2025 – Nov 12, 2026',
+                  ][range],
+              style: TextStyle(
+                color: c.sub,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           for (var i = 0; i < fields.length; i += 2)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -1550,21 +1779,32 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
                 Expanded(
                   child: Column(
                     children: [
-                      SizedBox(
-                        width: double.infinity,
-                        height: 153,
-                        child: CustomPaint(
-                          painter: _StudioChart(
-                            c,
-                            lateSpike: range == 3 || index == 4,
-                            axisMaximum: _sceneSeries(axis)?.first,
-                            series: _sceneSeries(
-                              config[switch (index) {
-                                3 => 'viewerChart',
-                                4 => 'followerChart',
-                                5 => 'liveChart',
-                                _ => 'chart',
-                              }],
+                      GestureDetector(
+                        onLongPress: widget.onEdit == null
+                            ? null
+                            : () async {
+                                await widget.onEdit!(
+                                  'period/$range/${index == 3 ? 'viewerChart' : 'chart'}',
+                                  null,
+                                );
+                                if (mounted) setState(() {});
+                              },
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 153,
+                          child: CustomPaint(
+                            painter: _StudioChart(
+                              c,
+                              lateSpike: range == 3 || index == 4,
+                              axisMaximum: _sceneSeries(axis)?.first,
+                              series: _sceneSeries(
+                                config[switch (index) {
+                                  3 => 'viewerChart',
+                                  4 => 'followerChart',
+                                  5 => 'liveChart',
+                                  _ => 'chart',
+                                }],
+                              ),
                             ),
                           ),
                         ),
@@ -1594,7 +1834,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
                 if (axis != null) ...[
                   const SizedBox(width: 6),
                   SizedBox(
-                    width: 39,
+                    width: 34,
                     height: 110,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1622,57 +1862,74 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
     SimColors c,
     bool selected,
   ) => Expanded(
-    child: Container(
-      padding: const EdgeInsets.fromLTRB(11, 12, 11, 11),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: selected ? insightBlue.withValues(alpha: .07) : c.surface,
-        border: Border.all(
-          color: selected ? insightBlue.withValues(alpha: .55) : c.divider,
+    child: GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: widget.onEdit == null
+          ? null
+          : () async {
+              await widget.onEdit!('period/$range/${entry.$1}', null);
+              if (mounted) setState(() {});
+            },
+      onLongPress: widget.onEdit == null
+          ? null
+          : () async {
+              await widget.onEdit!('period/$range/${entry.$1}Delta', null);
+              if (mounted) setState(() {});
+            },
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(11, 12, 11, 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          color: selected
+              ? c.dark
+                    ? insightBlue.withValues(alpha: .12)
+                    : const Color(0xfff2faff)
+              : c.surface,
+          border: Border.all(color: selected ? insightBlue : c.divider),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            entry.$2,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: c.ink,
-              fontSize: 13,
-              height: 1.2,
-              fontWeight: FontWeight.w600,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              entry.$2,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: c.ink,
+                fontSize: 13,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            const {
-                  'postViews',
-                  'profileViews',
-                  'viewers',
-                  'newViewers',
-                  'liveViews',
-                }.contains(entry.$1)
-                ? formatViewCount(entry.$3)
-                : entry.$3,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: c.ink,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
+            const SizedBox(height: 3),
+            Text(
+              const {
+                    'postViews',
+                    'profileViews',
+                    'viewers',
+                    'newViewers',
+                    'liveViews',
+                  }.contains(entry.$1)
+                  ? formatViewCount(entry.$3)
+                  : entry.$3,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: c.ink,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 5),
-          _metricChange(
-            entry.$2,
-            entry.$3,
-            c,
-            override: config['${entry.$1}Delta'],
-            changeValue: config['${entry.$1}Change'],
-          ),
-        ],
+            const SizedBox(height: 5),
+            _metricChange(
+              entry.$2,
+              entry.$3,
+              c,
+              override: config['${entry.$1}Delta'],
+              changeValue: config['${entry.$1}Change'],
+            ),
+          ],
+        ),
       ),
     ),
   );
@@ -1681,7 +1938,7 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
     colors: c,
     child: Column(
       children: [
-        _studioTitle('Traffic source', c),
+        editableValue('traffic', _studioTitle('Traffic source', c)),
         for (final (label, percent) in _sceneRatios(config['traffic'], [
           ('For You', 94.3),
           ('Personal profile', 4.2),
@@ -1832,7 +2089,10 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _studioTitle(title, c, info: true),
+          editableValue(
+            '$prefix${const ['Gender', 'Age', 'Locations'][breakdown]}',
+            _studioTitle(title, c, info: true),
+          ),
           const SizedBox(height: 10),
           _studioPills(
             ['Gender', 'Age', 'Locations'],
@@ -1974,7 +2234,10 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _studioTitle('Most active times', c, info: true),
+        editableValue(
+          '${prefix}Active',
+          _studioTitle('Most active times', c, info: true),
+        ),
         const SizedBox(height: 8),
         _studioPills(
           ['Hours', 'Days'],
@@ -1984,21 +2247,29 @@ class _StudioAnalyticsState extends State<_StudioAnalytics> {
           blue: true,
         ),
         const SizedBox(height: 8),
-        Text(
-          config['${prefix}Active'] ?? 'In the last 7 days, your viewers were most active on Thursday, between 5pm and 6pm.',
-          style: TextStyle(color: c.ink, fontSize: 13),
+        editableValue(
+          '${prefix}Active',
+          Text(
+            config['${prefix}Active'] ?? 'In the last 7 days, your viewers were most active on Thursday, between 5pm and 6pm.',
+            style: TextStyle(color: c.ink, fontSize: 13),
+          ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          height: 116,
-          child: CustomPaint(
-            painter: _StudioChart(
-              c,
-              bars: true,
-              lateSpike: activityDays,
-              series: _sceneSeries(
-                config['$prefix${activityDays ? 'Days' : 'Hours'}'],
+        GestureDetector(
+          onLongPress: widget.onEdit == null
+              ? null
+              : () => editValue('$prefix${activityDays ? 'Days' : 'Hours'}'),
+          child: SizedBox(
+            width: double.infinity,
+            height: 116,
+            child: CustomPaint(
+              painter: _StudioChart(
+                c,
+                bars: true,
+                lateSpike: activityDays,
+                series: _sceneSeries(
+                  config['$prefix${activityDays ? 'Days' : 'Hours'}'],
+                ),
               ),
             ),
           ),
@@ -2096,6 +2367,23 @@ class _StudioChart extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.2,
     );
+    if (samples != null && samples.length <= 12) {
+      for (final (index, value) in values.indexed) {
+        final point = Offset(
+          size.width * index / (values.length - 1),
+          size.height * value,
+        );
+        canvas.drawCircle(point, 2.1, Paint()..color = colors.surface);
+        canvas.drawCircle(
+          point,
+          2.1,
+          Paint()
+            ..color = insightBlue
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1,
+        );
+      }
+    }
   }
 
   @override
